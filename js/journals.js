@@ -1,0 +1,61 @@
+
+/* ========== MULTI-JOURNAL SUPPORT: IJMMS (medical) + IJMLS (life sciences) ========== */
+var JBR=JID==='ls'?'life':'medical';
+if(window.IJMMS_START)START_YEAR=window.IJMMS_START;
+Object.assign(DEFAULTS,{nmc:'NMC Approved Journal',scope:'Medicine & Surgery',subjects:'Medical and surgical sciences: '+branchFlat('medical').join('; ')+'.'});
+if(JID==='ls'){Object.assign(DEFAULTS,{nmc:'',
+ name:'International Journal of Modern Life Sciences',abbr:'Int J Mod Life Sci',short:'IJMLS',scope:'Life Sciences',email:'editor@ijmls.org',
+ tagline:'Peer-reviewed, open-access research across the life sciences.',
+ about:'The International Journal of Modern Life Sciences (IJMLS) publishes original research, review articles, short communications and methods papers across the life sciences: molecular and cellular biology, microbial and immune sciences, systems and translational biology, and applied and computational life sciences. All published articles are freely available to read and download.',
+ aims:'IJMLS publishes peer-reviewed research that advances understanding of living systems and their application to health, medicine, agriculture and the environment.\n\nObjectives: to provide a rigorous, freely accessible platform for original research, reviews, short communications and methods papers; to encourage reproducible, ethically conducted studies with transparent reporting of methods, data and materials; and to give researchers, clinicians and students dependable evidence for research and teaching.\n\nScope: molecular and cellular biology, genetics and genomics, microbiology and immunology, physiology and neuroscience, pharmacology and toxicology, nutrition, biotechnology, bioinformatics and computational biology, stem cells and regenerative medicine, and biomedical engineering, with emphasis on work of biomedical relevance.',
+ subjects:'Life Sciences: '+branchFlat('life').join('; ')+'.',
+ ethics:DEFAULT_ETHICS.replace('Clinical trials must be registered (for India, the CTRI) before enrolment.','Clinical trials must be registered (for India, the CTRI) before enrolment. Research on recombinant DNA, pathogens, biosafety-level materials and genetically modified organisms needs institutional biosafety committee approval, and datasets, sequences and materials should be deposited in recognised public repositories where applicable.')
+});}
+
+/* ---------- logos (IJMMS: supplied PNGs; IJMLS: generated wordmark) ---------- */
+var LS_DNA='<path d="M30 12c0 22 40 22 40 44s-40 22-40 44M70 12c0 22-40 22-40 44s40 22 40 44M34 30h32M34 82h32" fill="none" stroke="#0E7C7B" stroke-width="5" stroke-linecap="round"/>';
+function svgUri(s){return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(s);}
+function lsLogos(){var n=S.name||'',m=n.match(/^(International Journal of)\s+(.*)$/),l1=m?m[1]:n,l2=m?m[2]:'';
+ LOGO_SMALL=svgUri('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="150" viewBox="0 0 600 150"><g transform="translate(8,14) scale(1.05)">'+LS_DNA+'</g><rect x="118" y="22" width="3" height="104" fill="#0D2B4E"/><text x="138" y="62" font-family="Georgia,Times New Roman,serif" font-size="32" font-weight="700" fill="#0D2B4E">'+esc(l1)+'</text>'+(l2?'<text x="138" y="104" font-family="Georgia,Times New Roman,serif" font-size="36" font-weight="700" fill="#0E7C7B">'+esc(l2)+'</text>':'')+'<rect x="138" y="118" width="300" height="3" fill="#B8860B"/></svg>');
+ LOGO_CIRCLE=svgUri('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><circle cx="150" cy="150" r="144" fill="#fff" stroke="#0D2B4E" stroke-width="8"/><circle cx="150" cy="150" r="130" fill="none" stroke="#0E7C7B" stroke-width="3"/><g transform="translate(100,44)">'+LS_DNA+'</g><text x="150" y="212" text-anchor="middle" font-family="Georgia,Times New Roman,serif" font-size="34" font-weight="700" fill="#0D2B4E">'+esc(S.short||'IJMLS')+'</text><text x="150" y="240" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" letter-spacing="3" fill="#0E7C7B">LIFE SCIENCES</text></svg>');}
+function HEADER_LOGO(){if(JID==='ls'){if(typeof LS_LOGO_SMALL!=='undefined'){LOGO_SMALL=LS_LOGO_SMALL;LOGO_CIRCLE=LS_LOGO_CIRCLE;}else lsLogos();return (window.IJMMS_ASSETS||'')+'assets/logo-ls-horizontal.png';}return (window.IJMMS_ASSETS||'')+'assets/logo-horizontal.png';}
+function HERO_LOGO(){if(JID==='ls'){HEADER_LOGO();return (window.IJMMS_ASSETS||'')+'assets/logo-ls-circle.png';}return (window.IJMMS_ASSETS||'')+'assets/logo-circle.png';}
+
+/* ---------- subject branches: journal-specific, dropdowns ---------- */
+function branchOpts(sel){return '<option value="">- select subject area -</option>'+BRANCHES[JBR].map(function(g){return '<optgroup label="'+esc(g.g)+'">'+g.items.map(function(x){return '<option'+(x===sel?' selected':'')+'>'+esc(x)+'</option>';}).join('')+'</optgroup>';}).join('');}
+function branchHome(){var c=branchCounts(),g=BRANCHES[JBR];
+ var sel='<select id="hb-sel"><option value="">Select a subject area...</option>'+g.map(function(x){return '<optgroup label="'+esc(x.g)+'">'+x.items.map(function(i){return '<option value="'+esc(i)+'">'+esc(i)+' ('+(c[i]||0)+')</option>';}).join('')+'</optgroup>';}).join('')+'</select>';
+ return '<div class="bsel"><h3>Browse by subject area</h3><div class="bselrow">'+sel+'<button class="btn" data-act="gobranch">Show articles</button></div></div><div class="bdd">'+g.map(function(x){var n=x.items.reduce(function(s,i){return s+(c[i]||0);},0);return '<details><summary>'+esc(x.g)+' <span>'+n+' article'+(n===1?'':'s')+' &middot; '+x.items.length+' subjects</span></summary><div class="chips">'+x.items.map(function(i){return '<a href="#/subject/'+encodeURIComponent(i)+'">'+esc(i)+' <span>'+(c[i]||0)+'</span></a>';}).join('')+'</div></details>';}).join('')+'</div><p style="margin:8px 0 26px"><a href="#/subjects">All subjects with article counts &rarr;</a></p>';}
+function vSubjects(){return hd('Subjects',JID==='ls'?'Life-sciences subject areas':'Medical &amp; surgical branches')+pg('<div class="bpanels one">'+branchPanel(JBR,true)+'</div>');}
+var _vSubmit=vSubmit;
+vSubmit=function(){var h=_vSubmit();return h.replace('<div class="fg"><label>Abstract *</label>','<div class="fg"><label>Subject area (branch) *</label><select id="sf-branch">'+branchOpts('')+'</select></div><div class="fg"><label>Abstract *</label>');};
+Object.assign(ACT,{gobranch:function(){var v=$('hb-sel').value;if(v)location.hash='#/subject/'+encodeURIComponent(v);else toast('Select a subject area first.');}});
+document.addEventListener('change',function(e){if(e.target.id==='hb-sel'&&e.target.value)location.hash='#/subject/'+encodeURIComponent(e.target.value);if(e.target.id==='tk-b'){TK.b=e.target.value;$('tkt').innerHTML=tkTable();}if(e.target.id==='tk-s'){TK.s=e.target.value;$('tkt').innerHTML=tkTable();}});
+
+/* ---------- submission progress / tracker ---------- */
+var PSTEPS=['Submitted','Under review','Decision','Accepted','Published'];
+function progIdx(st){var m={'Submitted':0,'Under review':1,'Revision requested':2,'Rejected':2,'Accepted':3,'Published':4};return m[st]===undefined?0:m[st];}
+function progBar(st){var i=progIdx(st),bad=st==='Rejected';return '<div class="prog">'+PSTEPS.map(function(x,k){return '<span class="'+(k<i?'done':k===i?(bad?'bad':'cur'):'')+'">'+(k===2&&st==='Revision requested'?'Revision':k===2&&bad?'Rejected':x)+'</span>';}).join('')+'</div>';}
+var TK={b:'',s:''};
+function statCounts(){var c={total:SUBS.length,Submitted:0,'Under review':0,'Revision requested':0,Accepted:0,Rejected:0,Published:0};SUBS.forEach(function(s){if(c[s.status]!==undefined)c[s.status]++;});return c;}
+function tkRows(){return SUBS.filter(function(x){return (!TK.b||x.branch===TK.b)&&(!TK.s||x.status===TK.s);}).sort(function(a,b){return b.created-a.created;});}
+function tkTable(){var l=tkRows();return '<table class="t bd"><tr><th>Ref.</th><th>Title</th><th>Subject area</th><th>Submitted by</th><th>Date</th><th>Reviewer</th><th>Progress</th></tr>'+(l.length?l.map(function(s){return '<tr><td>'+esc(s.ref||'-')+'</td><td style="max-width:240px"><a href="#/sub/'+s.id+'">'+esc(s.title)+'</a></td><td>'+esc(s.branch||'-')+'</td><td>'+esc(s.authorName)+'<br><small>'+esc(s.authorEmail)+'</small></td><td>'+fmtDate(s.date)+'</td><td>'+esc(s.reviewerName||'-')+'</td><td>'+progBar(s.status)+'</td></tr>';}).join(''):'<tr><td colspan="7">No submissions match.</td></tr>')+'</table>';}
+function statTiles(){var c=statCounts();return '<div class="tiles"><div class="tile"><b>'+c.total+'</b><span>Total</span></div><div class="tile"><b>'+c.Submitted+'</b><span>Submitted</span></div><div class="tile"><b>'+c['Under review']+'</b><span>Under review</span></div><div class="tile"><b>'+c['Revision requested']+'</b><span>Revision</span></div><div class="tile"><b>'+c.Accepted+'</b><span>Accepted</span></div><div class="tile"><b>'+c.Published+'</b><span>Published</span></div></div>';}
+function vTracker(){return '<div class="card"><h3>Submission tracker - '+esc(S.short)+'</h3>'+statTiles()+'<div class="row3"><div class="fg"><label>Subject area</label><select id="tk-b"><option value="">All</option>'+branchOpts(TK.b).replace('<option value="">- select subject area -</option>','')+'</select></div><div class="fg"><label>Status</label><select id="tk-s"><option value="">All</option>'+['Submitted','Under review','Revision requested','Accepted','Rejected','Published'].map(function(x){return '<option'+(TK.s===x?' selected':'')+'>'+x+'</option>';}).join('')+'</select></div></div><div id="tkt">'+tkTable()+'</div></div>';}
+function vProgress(){var l=SUBS.slice().sort(function(a,b){return b.created-a.created;});
+ return hd('Submission Progress','Where manuscripts submitted to '+esc(S.short)+' stand')+pg(statTiles()+'<p class="pg-h">Manuscripts are listed by reference number. Titles and authors become visible when the article is published.</p><table class="t bd"><tr><th>Ref.</th><th>Subject area</th><th>Type</th><th>Submitted</th><th>Progress</th><th>Published article</th></tr>'+(l.length?l.map(function(s){var a=s.articleId&&findArt(s.articleId);var pub=a&&a.status==='published';return '<tr><td>'+esc(s.ref||'-')+'</td><td>'+esc(s.branch||'-')+'</td><td>'+esc(s.type)+'</td><td>'+fmtDate(s.date)+'</td><td>'+progBar(s.status)+'</td><td>'+(pub?'<a href="#/article/'+a.id+'">'+esc(a.title)+'</a><br><small>'+esc(authNames(a))+'</small>':'-')+'</td></tr>';}).join(''):'<tr><td colspan="6">No submissions yet.</td></tr>')+'</table>');}
+var _am2=adminMenu;
+adminMenu=function(sub){var h=_am2(sub);if(!isAdmin())return h;var i=h.lastIndexOf('</div>');return h.slice(0,i)+'<a href="#/admin/tracker" class="'+(sub==='tracker'?'on':'')+'">Submission tracker</a>'+h.slice(i);};
+var _va2=vAdmin;
+vAdmin=function(p){if(p[1]==='tracker'&&isAdmin())return hd('Admin panel','Submission tracker')+pg('<div class="adm">'+adminMenu('tracker')+'<div>'+vTracker()+'</div></div>');return _va2(p);};
+var _vDash2=vDash;
+vDash=function(){var h=_vDash2();var u=curUser();if(!u||isAdmin())return h;var mine=SUBS.filter(function(s){return s.authorId===u.id||s.reviewerId===u.id;});if(!mine.length)return h;var i=h.indexOf('<table');return h.slice(0,i)+mine.map(function(s){return '<div class="card"><b>'+esc(s.ref||'')+'</b> &middot; '+esc(s.title)+'<br>'+progBar(s.status)+'</div>';}).join('')+h.slice(i);};
+var _vSub2=vSub;
+vSub=function(id){var h=_vSub2(id),s=findSub(id);if(!s||!canSee(s))return h;return h.replace('<h2>'+esc(s.title)+'</h2>','<h2>'+esc(s.title)+'</h2>'+progBar(s.status));};
+
+/* ---------- chrome: sister journal, progress link, theme ---------- */
+var _rc2=renderChrome;
+renderChrome=function(){_rc2();document.body.classList.toggle('ls',JID==='ls');document.title=S.short+' - '+S.name;
+ var cur=(location.hash.replace(/^#\/?/,'')||window.IJMMS_PAGE||'home').split('/')[0];
+ $('nav').insertAdjacentHTML('beforeend','<a href="#/progress" class="'+(cur==='progress'?'on':'')+'">Submission Progress</a>');
+ if(window.IJMMS_SISTER){var l='<a href="'+esc(window.IJMMS_SISTER)+'">'+esc(window.IJMMS_SISTER_NAME||'')+'</a>';$('topbar').insertAdjacentHTML('beforeend','<div class="sister">Sister journal from '+esc(S.publisher)+': '+l+'</div>');$('foot').insertAdjacentHTML('beforeend','<div style="width:100%;margin-top:8px;font-size:12.5px">Sister journal: '+l+'</div>');}};
