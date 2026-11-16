@@ -20,9 +20,9 @@ function kvRow(k,v){return v?'<tr><th>'+k+'</th><td>'+v+'</td></tr>':'';}
 function glanceTable(){var rows='';
  rows+=kvRow('Journal title',esc(S.name))+kvRow('Abbreviation',esc(S.abbr))+kvRow('Publisher',esc(S.publisher)+(S.address?', '+esc(S.address):''))+kvRow('Subject area',esc(S.scope||''))+kvRow('Frequency',esc(S.freq))+kvRow('Language','English')
   +kvRow('ISSN',(S.issnO?'eISSN '+esc(S.issnO):'')+(S.issnO&&S.issnP?' &middot; ':'')+(S.issnP?'pISSN '+esc(S.issnP):''))
-  +kvRow('Peer review','Independent peer review of every manuscript (see <a href="#/ethics">publication ethics</a>)')+kvRow('Access and licence','Open access &middot; '+esc(S.license))
+  +kvRow('Peer review','Double-blind peer review by two independent reviewers (see <a href="#/ethics">publication ethics</a>)')+kvRow('Access and licence','Open access &middot; '+esc(S.license))
   +kvRow('Submission','Free of charge &middot; article processing charges, if applicable, are payable only after acceptance (<a href="#/apc">APC rate card</a>)')
-  +kvRow('DOI',S.doiPrefix&&S.doiPrefix!=='10.xxxxx'?'Prefix '+esc(S.doiPrefix):'Digital Object Identifier assigned to every article')
+  +kvRow('DOI',S.doiPrefix&&S.doiPrefix!=='10.xxxxx'?'Prefix '+esc(S.doiPrefix):'')
   +kvRow('Quality standard',isoLine())+kvRow('Impact factor',ifLine().replace('Impact factor: ',''))+kvRow('Editorial office','<a href="mailto:'+esc(S.email)+'">'+esc(S.email)+'</a>');
  return '<table class="gl">'+rows+'</table>';}
 function idxStrip(){var l=idxShown();if(!l.length)return '';return '<section class="ixstrip"><div class="wrap"><h3>Indexing &amp; Abstracting</h3><div class="ixrow">'+l.map(function(x){return '<a href="'+esc(idxUrl(x))+'" target="_blank" rel="noopener" title="'+esc(x[1])+'"><img src="'+A_()+IDXLOGO[x[0]]+'" alt="'+esc(x[1])+'"></a>';}).join('')+'</div><p>'+(isoLine()?isoLine()+' &middot; ':'')+ifLine()+' &middot; <a href="#/indexing">Details</a></p></div></section>';}
