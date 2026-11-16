@@ -1,0 +1,17 @@
+{
+  "name": "ijmms-journal",
+  "version": "1.0.0",
+  "description": "Node.js + PostgreSQL server for the IJMMS / IJMLS journal websites",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.22.3",
+    "nodemailer": "^7.0.0",
+    "pg": "^8.16.0"
+  }
+}

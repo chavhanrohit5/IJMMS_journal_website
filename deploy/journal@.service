@@ -1,0 +1,17 @@
+# /etc/systemd/system/journal@.service  -> start with: systemctl enable --now journal@ms journal@ls
+[Unit]
+Description=Journal server (%i)
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=journal
+WorkingDirectory=/opt/journal
+Environment=ENV_FILE=/opt/journal/.env.%i
+ExecStart=/usr/bin/node server/index.js
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
