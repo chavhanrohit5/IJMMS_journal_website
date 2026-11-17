@@ -1,11 +1,11 @@
 /* ========== IJMMS journal details (confirmed 16 Nov 2026) ==========
    Overrides the built-in defaults. Edit here, or in Admin > Settings once the server edition is live.
-   TO DO before launch on the journal's own domain: change `email` to the journal's address.
+   Journal address: editor@ijmms.in (GoDaddy mailbox).
    NOT YET HELD - keep switched off until each is real: ISSN, Crossref DOI prefix, indexing logos,
    NMC statement (enable only with the NMC letter, worded to match it). */
 (function(){
   if(typeof JID!=='undefined'&&JID==='ls')return;
-  var EMAIL='genosyncglobal@gmail.com';
+  var EMAIL='editor@ijmms.in';
   var EIC='Dr. Rohit B. Chavhan, Pharm.D, MBA (Hospital & Health System Management)';
   var how=window.IJMMS_SERVER?'Submit through this website (Submit Manuscript) or by email to '+EMAIL+'.':'Submit by email to '+EMAIL+'.';
   var o={
