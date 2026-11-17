@@ -24,11 +24,14 @@ for j in ms; do
   mkdir -p /var/lib/journals/$n
 done
 cp "$SRC/deploy/backup.sh" /opt/journal/backup.sh; chmod +x /opt/journal/backup.sh
+cp "$SRC/deploy/cloudflare-realip.sh" /opt/journal/cloudflare-realip.sh; chmod +x /opt/journal/cloudflare-realip.sh
 cp "$SRC/deploy/journal@.service" /etc/systemd/system/journal@.service
 cp "$SRC/deploy/nginx-ijmms.conf" /etc/nginx/sites-available/ijmms
 ln -sf /etc/nginx/sites-available/ijmms /etc/nginx/sites-enabled/ijmms
 chown -R journal:journal /opt/journal /var/lib/journals
 echo "0 2 * * * root /opt/journal/backup.sh >> /var/log/journal-backup.log 2>&1" > /etc/cron.d/journal-backup
+echo "30 3 * * 1 root /opt/journal/cloudflare-realip.sh >> /var/log/journal-cloudflare.log 2>&1" > /etc/cron.d/journal-cloudflare
+/opt/journal/cloudflare-realip.sh || echo "Cloudflare address list not installed yet; run /opt/journal/cloudflare-realip.sh later."
 cat <<M
 
 Installed. NEXT (see README.md):

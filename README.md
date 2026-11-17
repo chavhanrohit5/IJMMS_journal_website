@@ -27,6 +27,17 @@ Ubuntu 22.04/24.04 VPS (1 GB RAM minimum, 2 GB comfortable for two journals), ro
 5. HTTPS: `certbot --nginx -d your-domain -d www.your-domain` (once per domain).
 6. First admin password: `cat /var/lib/journals/ijmms/admin-initial-password.txt` (and `.../ijmls/...`). Log in at `https://domain/#/login` with ID `admin`, change it in Admin > Settings, delete the file.
 
+## Cloudflare in front of the server
+The site runs on the VPS; Cloudflare sits in front for DNS, HTTPS, caching and attack protection.
+1. Add the domain to Cloudflare (free plan) and switch the nameservers at your registrar to the two Cloudflare gives you.
+2. DNS: two `A` records, `@` and `www`, both pointing to the VPS IP. Leave them **DNS only** (grey cloud) for now.
+3. Install on the VPS (steps above) including `certbot`, so the server has its own certificate.
+4. Turn the proxy on (orange cloud) for both records, then SSL/TLS > Overview > **Full (strict)**. Do not use *Flexible*: it causes redirect loops and sends logins unencrypted to the server.
+5. Caching: add a cache rule to **bypass cache** for `/api/*` (logins, submissions and dashboards must never be cached).
+6. Uploads: the free plan accepts files up to 100 MB, above the site's own 40 MB limit.
+
+`deploy/install.sh` installs `/opt/journal/cloudflare-realip.sh` (refreshed weekly), which lets the server see each visitor's real address. Without it all visitors share one address and the login / registration rate limits would block genuine users.
+
 ## First-day checklist
 - Admin > Settings: ISSNs, publisher, address, DOI prefix (only your **registered** Crossref prefix), e-mail address.
 - Admin > Outbox: **Send test e-mail** (confirms SMTP).
