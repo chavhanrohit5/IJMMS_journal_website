@@ -24,4 +24,15 @@
   };
   ['icmje','crossref','scholar','researchgate','ici','imsear','nlm'].forEach(function(k){o['idx_'+k]='hidden';});
   Object.assign(DEFAULTS,o);
+  /* Preview notice: this edition keeps accounts and submissions only in the visitor's own browser. */
+  if(!window.IJMMS_SERVER){
+    var addBar=function(){
+      if(document.getElementById('preview-bar'))return;
+      var b=document.createElement('div');b.id='preview-bar';b.setAttribute('role','note');
+      b.style.cssText='background:#fff4ce;color:#3d2f00;border-bottom:1px solid #e6cf7a;padding:8px 14px;font:14px/1.4 system-ui,-apple-system,Segoe UI,Arial,sans-serif;text-align:center';
+      b.innerHTML='<b>Preview version.</b> Accounts and submissions made here are not saved or sent to the journal. To submit a manuscript, email <a href="mailto:'+EMAIL+'" style="color:inherit">'+EMAIL+'</a>.';
+      document.body.insertBefore(b,document.body.firstChild);
+    };
+    if(document.body)addBar();else document.addEventListener('DOMContentLoaded',addBar);
+  }
 })();
