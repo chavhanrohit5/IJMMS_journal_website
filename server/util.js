@@ -11,6 +11,7 @@ function loadEnv(file) {
       if (!m || l.trim().startsWith('#')) return;
       let v = m[2];
       if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
+      else v = v.replace(/(^|\s)#.*$/, '').trim(); /* unquoted value: drop an inline comment ("value   # note") */
       if (process.env[m[1]] === undefined) process.env[m[1]] = v;
     });
   } catch (e) { /* no .env file */ }
