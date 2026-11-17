@@ -17,26 +17,28 @@ Same design as before, now with a shared database, real logins, real e-mail, fil
 | Visitor counter | Counted once per browser per day, stored in the database |
 
 ## Requirements
-Ubuntu 22.04/24.04 VPS (1 GB RAM minimum, 2 GB comfortable for two journals), root access, two domains pointing (A record) to the server IP.
+Ubuntu 24.04 (or 22.04) VPS, 2 GB RAM minimum (4 GB comfortable), root access, the domain on Cloudflare.
 
-## Install (about 20 minutes)
-1. Upload and unzip this folder on the VPS, then: `sudo bash deploy/install.sh`
-2. Edit `/opt/journal/.env.ms` and `/opt/journal/.env.ls`: set `SITE_URL` (your https domain), `SMTP_*`. See `deploy/.env.example` for every option.
-3. Edit `server_name` in `/etc/nginx/sites-available/ijmms` and `ijmls`, then `nginx -t && systemctl reload nginx`.
-4. `systemctl daemon-reload && systemctl enable --now journal@ms`
-5. HTTPS: `certbot --nginx -d your-domain -d www.your-domain` (once per domain).
-6. First admin password: `cat /var/lib/journals/ijmms/admin-initial-password.txt` (and `.../ijmls/...`). Log in at `https://domain/#/login` with ID `admin`, change it in Admin > Settings, delete the file.
+## Install (about 30 minutes)
+On the VPS, as root:
+```
+git clone https://github.com/chavhanrohit5/IJMMS_journal_website.git
+cd IJMMS_journal_website
+sudo DOMAIN=ijmms.in bash deploy/install.sh
+```
+This installs PostgreSQL, Node.js 22, nginx and Google Chrome (for PDFs), creates the database and `/opt/journal/.env.ms`, starts the journal, and turns on the firewall (SSH open; web ports only from Cloudflare) and automatic security updates.
 
-## Cloudflare in front of the server
-The site runs on the VPS; Cloudflare sits in front for DNS, HTTPS, caching and attack protection.
-1. Add the domain to Cloudflare (free plan) and switch the nameservers at your registrar to the two Cloudflare gives you.
-2. DNS: two `A` records, `@` and `www`, both pointing to the VPS IP. Leave them **DNS only** (grey cloud) for now.
-3. Install on the VPS (steps above) including `certbot`, so the server has its own certificate.
-4. Turn the proxy on (orange cloud) for both records, then SSL/TLS > Overview > **Full (strict)**. Do not use *Flexible*: it causes redirect loops and sends logins unencrypted to the server.
-5. Caching: add a cache rule to **bypass cache** for `/api/*` (logins, submissions and dashboards must never be cached).
-6. Uploads: the free plan accepts files up to 100 MB, above the site's own 40 MB limit.
+Then:
+1. Cloudflare DNS: `A` records `@` and `www` -> server IP, **proxied** (orange cloud).
+2. `sudo DOMAIN=ijmms.in bash deploy/enable-https.sh` (free Let's Encrypt certificate, renews itself).
+3. Cloudflare SSL/TLS > Overview > **Full (strict)**. Never *Flexible*.
+4. Cloudflare cache rule: **bypass cache** for `/api/*` (logins, submissions and dashboards must never be cached).
+5. First admin password: `cat /var/lib/journals/ijmms/admin-initial-password.txt`. Log in at `https://domain/#/login` with ID `admin`, change it in Admin > Settings, delete the file.
+6. E-mail: set `SMTP_*` in `/opt/journal/.env.ms`, then `systemctl restart journal@ms`.
 
-`deploy/install.sh` installs `/opt/journal/cloudflare-realip.sh` (refreshed weekly), which lets the server see each visitor's real address. Without it all visitors share one address and the login / registration rate limits would block genuine users.
+**Pre-launch:** the site tells search engines not to index it (two lines marked `PRE-LAUNCH` in `/etc/nginx/sites-available/ijmms`). Delete them at launch and run `nginx -t && systemctl reload nginx`.
+
+`/opt/journal/cloudflare-realip.sh` and `/opt/journal/firewall.sh` refresh Cloudflare's address list weekly, so the server sees each visitor's real address (needed for the login and registration rate limits) and only Cloudflare can reach the web ports.
 
 ## First-day checklist
 - Admin > Settings: ISSNs, publisher, address, DOI prefix (only your **registered** Crossref prefix), e-mail address.
@@ -59,11 +61,4 @@ The site runs on the VPS; Cloudflare sits in front for DNS, HTTPS, caching and a
 - Indexing status (Scopus, PubMed, DOAJ etc.), impact factor and approvals remain admin-entered claims: enter only what is true.
 - The site is a single-page app: the visible text of article pages is also in the HTML for crawlers, other pages load through JavaScript.
 
-## Deploy from GitHub
-On the VPS:
-```
-git clone https://github.com/chavhanrohit5/IJMMS_journal_website.git
-cd IJMMS_journal_website
-sudo bash deploy/install.sh
-```
 Keep this repository **private** once set up. Never commit `.env` files (already git-ignored).
