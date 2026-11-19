@@ -3,11 +3,11 @@
 # without being shown and is written only to /opt/journal/.env.ms (or .env.ls) (readable by root/journal only).
 #   sudo bash deploy/set-smtp.sh                      # GoDaddy mailbox editor@ijmms.in (defaults)
 #   sudo bash deploy/set-smtp.sh user@domain host port
-#   sudo JOURNAL=ls bash deploy/set-smtp.sh editor@ijmls.org host port    # second journal (IJMLS)
+#   sudo JOURNAL=ls bash deploy/set-smtp.sh editor@ijmls.in host port    # second journal (IJMLS)
 set -euo pipefail
 [ "$(id -u)" = 0 ] || { echo "Run with sudo"; exit 1; }
 J="${JOURNAL:-ms}"
-[ "$J" = ls ] && [ -z "${1:-}" ] && { echo "For IJMLS give the mailbox, host and port, e.g.: sudo JOURNAL=ls bash deploy/set-smtp.sh editor@ijmls.org smtp.hostinger.com 465"; exit 1; }
+[ "$J" = ls ] && [ -z "${1:-}" ] && { echo "For IJMLS give the mailbox, host and port, e.g.: sudo JOURNAL=ls bash deploy/set-smtp.sh editor@ijmls.in smtp.hostinger.com 465"; exit 1; }
 USER_ADDR="${1:-editor@ijmms.in}"; HOST="${2:-smtpout.secureserver.net}"; PORT="${3:-465}"
 case "$J" in ms|ls) ;; *) echo "JOURNAL must be ms or ls"; exit 1;; esac
 ENVF=/opt/journal/.env.$J

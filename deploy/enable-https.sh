@@ -2,7 +2,7 @@
 # Gets a free Let's Encrypt certificate for the domain and switches nginx to HTTPS.
 # Run after the domain points at this server (through Cloudflare is fine):
 #     sudo DOMAIN=ijmms.in bash deploy/enable-https.sh
-#     sudo JOURNAL=ls DOMAIN=ijmls.org bash deploy/enable-https.sh     (second journal, IJMLS)
+#     sudo JOURNAL=ls DOMAIN=ijmls.in bash deploy/enable-https.sh     (second journal, IJMLS)
 # Renewal is automatic (certbot timer); the challenge is served on both port 80 and 443,
 # so it works whatever Cloudflare's SSL mode or "Always Use HTTPS" setting is.
 set -euo pipefail

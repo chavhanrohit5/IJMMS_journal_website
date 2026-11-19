@@ -4,7 +4,7 @@
 (function(){
   if(typeof JID==='undefined'||JID!=='ls')return;
   START_YEAR=2027; /* Volume 1 = 2027 */
-  var EMAIL='editor@ijmls.org';
+  var EMAIL='editor@ijmls.in';
   var EIC='Dr. Rohit B. Chavhan, Pharm.D, MBA (Hospital & Health System Management)';
   var how=window.IJMMS_SERVER?'Submit through this website (Submit Manuscript) or by email to '+EMAIL+'.':'Submit by email to '+EMAIL+'.';
   var o={

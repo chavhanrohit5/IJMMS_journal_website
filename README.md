@@ -43,9 +43,9 @@ Then:
 ## Second journal on the same server (IJMLS)
 The same code also runs the sister journal, IJMLS (International Journal of Modern Life Sciences), with its own pages (`public/ls`), database, settings (`/opt/journal/.env.ls`), port 3002 and domain:
 ```
-sudo DOMAIN=ijmls.org bash deploy/add-journal.sh            # after install.sh has set up IJMMS
-sudo JOURNAL=ls DOMAIN=ijmls.org bash deploy/enable-https.sh  # once the domain points here via Cloudflare
-sudo JOURNAL=ls bash deploy/set-smtp.sh editor@ijmls.org <smtp-host> 465
+sudo DOMAIN=ijmls.in bash deploy/add-journal.sh            # after install.sh has set up IJMMS
+sudo JOURNAL=ls DOMAIN=ijmls.in bash deploy/enable-https.sh  # once the domain points here via Cloudflare
+sudo JOURNAL=ls bash deploy/set-smtp.sh editor@ijmls.in <smtp-host> 465
 ```
 `update.sh`, `backup.sh` and `health.sh` cover both journals automatically. IJMLS details live in `public/ls/js/site-config.js` and `server/defaults/ls.json`.
 

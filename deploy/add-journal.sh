@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Adds the second journal (IJMLS) to a server that already runs IJMMS (install.sh done).
 # It gets its own database, settings file, data folder, port 3002 and nginx site.
-#     sudo DOMAIN=ijmls.org bash /root/IJMMS_journal_website/deploy/add-journal.sh
+#     sudo DOMAIN=ijmls.in bash /root/IJMMS_journal_website/deploy/add-journal.sh
 # Then, once the domain points here through Cloudflare:
-#     sudo JOURNAL=ls DOMAIN=ijmls.org bash /root/IJMMS_journal_website/deploy/enable-https.sh
+#     sudo JOURNAL=ls DOMAIN=ijmls.in bash /root/IJMMS_journal_website/deploy/enable-https.sh
 set -euo pipefail
 [ "$(id -u)" = 0 ] || { echo "Run as root"; exit 1; }
-DOMAIN="${DOMAIN:?Set the domain first, for example: sudo DOMAIN=ijmls.org bash deploy/add-journal.sh}"
+DOMAIN="${DOMAIN:?Set the domain first, for example: sudo DOMAIN=ijmls.in bash deploy/add-journal.sh}"
 case "$DOMAIN" in *[!a-z0-9.-]*|"") echo "DOMAIN looks wrong: $DOMAIN"; exit 1;; esac
 J=ls; N=ijmls; PORT=3002
 SRC="$(cd "$(dirname "$0")/.." && pwd)"
