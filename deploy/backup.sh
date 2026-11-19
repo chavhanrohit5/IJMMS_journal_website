@@ -5,7 +5,7 @@ D=/var/backups/journals; T=$(date +%F); mkdir -p "$D"
 for n in ijmms ijmls; do
   [ -d /var/lib/journals/$n ] || continue
   sudo -u postgres pg_dump "$n" | gzip > "$D/$n-db-$T.sql.gz"
-  tar -czf "$D/$n-files-$T.tar.gz" -C /var/lib/journals "$n" --exclude="$n/pdf"
+  tar -czf "$D/$n-files-$T.tar.gz" --exclude="$n/pdf" -C /var/lib/journals "$n"
 done
 find "$D" -type f -mtime +14 -delete
 echo "backup $T done"

@@ -24,7 +24,7 @@ mem=$(free -m | awk '/Mem:/{printf "%d", ($2-$7)*100/$2}')
 echo
 echo "Backups"
 for j in $JS; do
-  last=$(ls -1t /var/backups/journals/$(site $j)-db-*.sql.gz 2>/dev/null | head -1)
+  last=$(ls -1t /var/backups/journals/$(site $j)-files-*.tar.gz 2>/dev/null | head -1)
   if [ -n "$last" ]; then
     age=$(( ( $(date +%s) - $(stat -c %Y "$last") ) / 3600 ))
     [ "$age" -le 30 ] && ok "$(name $j) last backup $(basename "$last") (${age} h ago)" || bad "$(name $j) last backup is ${age} h old  ->  bash /opt/journal/backup.sh"
