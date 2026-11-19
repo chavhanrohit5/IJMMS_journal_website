@@ -20,7 +20,7 @@ function coverHTML(li){HEADER_LOGO();var arts=li?issueArts(li.year,li.issue):[],
  var issn=[S.issnO?'eISSN '+esc(S.issnO):'',S.issnP?'pISSN '+esc(S.issnP):''].filter(Boolean).join(' &middot; ');
  return '<div class="cvr"><i class="ring"></i><i class="ring r2"></i><i class="ring r3"></i><div class="sp"></div><div class="in"><div class="pub">'+esc(S.publisher)+'</div><div class="lg"><img src="'+LOGO_CIRCLE+'" alt=""></div><div class="jn">'+esc(S.name)+'</div><div class="ab">'+esc(S.abbr)+'</div>'
   +'<div class="bd"><b>Volume '+esc(cal.vol)+' &middot; Issue '+esc(cal.issue)+'</b><span>'+esc(cal.period||cal.year)+'</span></div>'
-  +'<div class="ct">'+(tt?'<h6>In this issue</h6>'+tt:'<h6>Peer-reviewed &middot; Open Access</h6><p>Original research</p><p>Reviews and case reports</p><p>Free online access to every article</p>')+'</div>'
+  +'<div class="ct">'+(tt?'<h6>In this issue</h6>'+tt:'<h6>Peer-reviewed &middot; Open Access</h6><p>Original research</p><p>'+(JID==='ls'?'Reviews and short communications':'Reviews and case reports')+'</p><p>Free online access to every article</p>')+'</div>'
   +'<div class="ft"><b>'+esc(S.short)+'</b> &middot; '+(S.freq?esc(S.freq)+' &middot; ':'')+'Open Access'+(issn?'<br>'+issn:'')+'<br>'+esc(S.publisher)+'</div></div></div>';}
 function coverBlock(li){var arts=li?issueArts(li.year,li.issue):[];
  var mail='mailto:'+encodeURIComponent(S.email||'')+'?subject='+encodeURIComponent('Print copy request - '+S.short+(li?' Vol. '+li.vol+', Issue '+li.issue+' ('+li.period+')':''))+'&body='+encodeURIComponent('Dear Editorial Office,\n\nI would like to request a print copy of '+S.name+(li?', Volume '+li.vol+', Issue '+li.issue+' ('+li.period+')':'')+'.\n\nName:\nPostal address:\nPhone:\n');

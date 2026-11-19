@@ -2,7 +2,7 @@
 # Nightly backup: PostgreSQL dumps + uploaded files. Keeps 14 days. COPY /var/backups/journals OFF THE SERVER regularly.
 set -euo pipefail
 D=/var/backups/journals; T=$(date +%F); mkdir -p "$D"
-for n in ijmms; do
+for n in ijmms ijmls; do
   [ -d /var/lib/journals/$n ] || continue
   sudo -u postgres pg_dump "$n" | gzip > "$D/$n-db-$T.sql.gz"
   tar -czf "$D/$n-files-$T.tar.gz" -C /var/lib/journals "$n" --exclude="$n/pdf"

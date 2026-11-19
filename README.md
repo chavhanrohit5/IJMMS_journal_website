@@ -40,6 +40,15 @@ Then:
 
 `/opt/journal/cloudflare-realip.sh` and `/opt/journal/firewall.sh` refresh Cloudflare's address list weekly, so the server sees each visitor's real address (needed for the login and registration rate limits) and only Cloudflare can reach the web ports.
 
+## Second journal on the same server (IJMLS)
+The same code also runs the sister journal, IJMLS (International Journal of Modern Life Sciences), with its own pages (`public/ls`), database, settings (`/opt/journal/.env.ls`), port 3002 and domain:
+```
+sudo DOMAIN=ijmls.org bash deploy/add-journal.sh            # after install.sh has set up IJMMS
+sudo JOURNAL=ls DOMAIN=ijmls.org bash deploy/enable-https.sh  # once the domain points here via Cloudflare
+sudo JOURNAL=ls bash deploy/set-smtp.sh editor@ijmls.org <smtp-host> 465
+```
+`update.sh`, `backup.sh` and `health.sh` cover both journals automatically. IJMLS details live in `public/ls/js/site-config.js` and `server/defaults/ls.json`.
+
 ## First-day checklist
 - Admin > Settings: ISSNs, publisher, address, DOI prefix (only your **registered** Crossref prefix), e-mail address.
 - Admin > Outbox: **Send test e-mail** (confirms SMTP).
@@ -49,7 +58,8 @@ Then:
 
 ## Operations
 - Logs: `journalctl -u journal@ms -f`
-- Update: replace `/opt/journal/server` and `/opt/journal/public`, `chown -R journal:journal /opt/journal`, `systemctl restart journal@ms`
+- Update: `bash /root/IJMMS_journal_website/deploy/update.sh` (pulls from GitHub, backs up, restarts both journals)
+- Health: `bash /root/IJMMS_journal_website/deploy/health.sh`
 - Backups: nightly `/opt/journal/backup.sh` (database + files) into `/var/backups/journals`, 14 days kept. **Copy those files off the server** (rsync / object storage) – a backup on the same disk is not a backup.
 - Restore: commands are at the bottom of `deploy/backup.sh`.
 - Security: keep `.env.*` private (chmod 600 is set), use a firewall (`ufw allow 22,80,443/tcp`), keep the OS updated.

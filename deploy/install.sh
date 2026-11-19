@@ -55,7 +55,7 @@ cp "$SRC/deploy/journal@.service" /etc/systemd/system/journal@.service
 chown -R journal:journal /opt/journal /var/lib/journals
 
 echo "== Web server (HTTP for now; enable-https.sh adds HTTPS once the domain points here)"
-sed "s/__DOMAIN__/$DOMAIN/g" "$SRC/deploy/nginx-ijmms.conf" > /etc/nginx/sites-available/ijmms
+sed -e "s/__DOMAIN__/$DOMAIN/g" -e "s/__PORT__/3001/g" "$SRC/deploy/nginx-ijmms.conf" > /etc/nginx/sites-available/ijmms
 ln -sf /etc/nginx/sites-available/ijmms /etc/nginx/sites-enabled/ijmms
 rm -f /etc/nginx/sites-enabled/default
 /opt/journal/cloudflare-realip.sh || echo "Cloudflare address list not loaded yet; run /opt/journal/cloudflare-realip.sh later."
