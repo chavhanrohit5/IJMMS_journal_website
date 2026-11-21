@@ -7,7 +7,7 @@
    article record. Empty identifiers print as grey placeholders, never as
    invented values. Loaded after articles2.js, so it replaces printHTML.
    ========================================================================== */
-var PUB_TPL='pubstd-2026-11-21g';
+var PUB_TPL='pubstd-2026-11-21i';
 if(typeof DEFAULTS!=='undefined'){if(!('pdfTemplate' in DEFAULTS))DEFAULTS.pdfTemplate='standard';if(!('website' in DEFAULTS))DEFAULTS.website='';if(!('editorName' in DEFAULTS))DEFAULTS.editorName='';}
 
 function pubBrand(){return JID==='ls'
@@ -104,10 +104,11 @@ printHTML=function(a){
  '@media screen{html{background:#d7dce2}body.pubstd{max-width:210mm;margin:0 auto;padding:10mm 12mm;background:#fff;box-shadow:0 0 14px rgba(0,0,0,.25)}}',
  '@media print{.pubstd .toolbar{display:none}}',
  /* publication-information header */
- '.pubstd .pihead{display:flex;justify-content:space-between;align-items:center;gap:6mm;min-height:19mm}',
+ '.pubstd .pihead{display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:6mm;min-height:20mm}',
  '.pubstd .pihead .lg{background:#fff;padding:0;flex:0 1 auto}.pubstd .pihead .lg img{display:block;height:20mm;max-width:110mm;width:auto}.pubstd .pihead .lg .jt{font:bold 15pt/1.15 '+F+';color:'+B.p+'}',
  '.pubstd .pihead .nm{text-align:center;font:bold 12.5pt/1.15 '+F+';color:'+B.p+'}.pubstd .pihead .nm small{display:block;font:bold 8.5pt '+SANS+';letter-spacing:1.2pt;color:'+B.a+';margin-top:.8mm}',
- '.pubstd .pihead .ids{flex:0 0 auto;font:7.2pt/1.4 '+SANS+';color:#333;text-align:right;white-space:nowrap;border-left:.8pt solid '+B.g+';padding-left:4mm}.pubstd .pihead .ids b{color:'+B.p+';font-weight:bold}',
+ '.pubstd .pihead .nm{text-align:center;text-wrap:balance;font:bold 17pt/1.18 '+F+';color:'+B.p+';padding-right:2mm}.pubstd .pihead .nm small{display:block;font:bold 9pt '+SANS+';letter-spacing:2pt;color:'+B.a+';margin-top:1.2mm}',
+ '.pubstd .idstrip{display:flex;justify-content:space-between;flex-wrap:wrap;gap:1mm 4mm;font:7.2pt/1.3 '+SANS+';color:#333;margin:0 0 3mm;padding-bottom:1.6mm;border-bottom:.5pt solid #ccc}.pubstd .idstrip b{color:'+B.p+'}.pubstd .pihead .ids b{color:'+B.p+';font-weight:bold}',
  '.pubstd .divider{height:1.6mm;background:linear-gradient(90deg,'+B.p+' 0 72%,'+B.a+' 72% 90%,'+B.g+' 90%);margin:2mm 0 1.6mm}',
  '.pubstd .catline{display:flex;justify-content:space-between;font:8pt '+SANS+';margin-bottom:4mm}.pubstd .catline .cat{font-weight:bold;color:#9b1c1c;text-transform:uppercase;letter-spacing:.7pt}',
  /* first page 90 + 90 */
@@ -151,14 +152,14 @@ printHTML=function(a){
  '.pubstd .wm{position:fixed;left:0;right:0;top:40%;text-align:center;font:bold 120pt '+SANS+';color:rgba(155,28,28,.10);transform:rotate(-32deg);letter-spacing:12pt;z-index:0;pointer-events:none}'
  ].join('\n');
 
- var ids='<b>P-ISSN:</b> '+pubPh(S.issnP,'XXXX-XXXX')+' &nbsp; <b>E-ISSN:</b> '+pubPh(S.issnO,'XXXX-XXXX')
-  +'<br><b>DOI prefix:</b> '+pubPh(S.doiPrefix&&!/x{3,}/i.test(S.doiPrefix)?S.doiPrefix:'','10.XXXXX')
-  +'<br><b>Web:</b> '+(pubHost()?'<a href="'+esc(pubSite())+'">'+esc(pubHost())+'</a>':pubPh('','www.example.com'))
-  +'<br><b>Frequency:</b> '+pubPh(S.freq,'Quarterly / Biannual')
-  +'<br><b>Volume '+esc(a.vol)+' / Issue '+esc(a.issue)+' / '+esc(a.year)+'</b>';
+ var ids='<span><b>P-ISSN:</b> '+pubPh(S.issnP,'XXXX-XXXX')+'</span><span><b>E-ISSN:</b> '+pubPh(S.issnO,'XXXX-XXXX')+'</span>'
+  +'<span><b>DOI prefix:</b> '+pubPh(S.doiPrefix&&!/x{3,}/i.test(S.doiPrefix)?S.doiPrefix:'','10.XXXXX')
+  +'</span><span><b>Web:</b> '+(pubHost()?'<a href="'+esc(pubSite())+'">'+esc(pubHost())+'</a>':pubPh('','www.example.com'))
+  +'</span><span><b>Frequency:</b> '+pubPh(S.freq,'Quarterly / Biannual')
+  +'</span><span><b>Volume '+esc(a.vol)+' / Issue '+esc(a.issue)+' / '+esc(a.year)+'</b></span>';
  var head='<div class="pihead"><div class="lg">'+(pubLogo()?'<img src="'+pubLogo()+'" alt="'+esc(S.name)+' ('+esc(S.short)+')">':'<div class="jt">'+esc(S.name)+' ('+esc(S.short)+')</div>')+'</div>'
-  +'<div class="ids">'+ids+'</div></div>'
-  +'<div class="divider"></div>'
+  +'<div class="nm">'+esc(S.name)+'<small>'+esc(S.short)+'</small></div></div>'
+  +'<div class="divider"></div><div class="idstrip">'+ids+'</div>'
   +'<div class="catline"><span class="cat">'+esc(a.type||'Original Research')+'</span><span><b>Article DOI:</b> '+(a.doi?'<a href="https://doi.org/'+esc(a.doi)+'">'+esc(a.doi)+'</a>':'<span class="ps-ph">to be assigned</span>')+'</span></div>';
 
  var dates='<b>Received</b> '+pubPh(pubDate(a.received),'dd Month yyyy')+'<br><b>Revised</b> '+pubPh(pubDate(a.revised),'dd Month yyyy')
