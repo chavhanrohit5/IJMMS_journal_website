@@ -7,8 +7,8 @@
    article record. Empty identifiers print as grey placeholders, never as
    invented values. Loaded after articles2.js, so it replaces printHTML.
    ========================================================================== */
-var PUB_TPL='pubstd-2026-11-21k';
-if(typeof DEFAULTS!=='undefined'){if(!('pdfTemplate' in DEFAULTS))DEFAULTS.pdfTemplate='standard';if(!('pdfHeader' in DEFAULTS))DEFAULTS.pdfHeader='title';if(!('website' in DEFAULTS))DEFAULTS.website='';if(!('editorName' in DEFAULTS))DEFAULTS.editorName='';}
+var PUB_TPL='pubstd-2026-11-21m';
+if(typeof DEFAULTS!=='undefined'){if(!('pdfTemplate' in DEFAULTS))DEFAULTS.pdfTemplate='standard';if(!('pdfHeader' in DEFAULTS))DEFAULTS.pdfHeader='citation';if(!('website' in DEFAULTS))DEFAULTS.website='';if(!('editorName' in DEFAULTS))DEFAULTS.editorName='';}
 
 function pubBrand(){return JID==='ls'
  ?{p:'#0A5A58',a:'#0E7C7B',g:'#B8860B',soft:'#EAF4F3',ink:'#0B3B3A'}
@@ -43,8 +43,9 @@ function pubQr(text,mm){
                (What is already known / What this study adds / Implications),
                plus the same statements (BMJ / Lancet practice)                 */
 var PUB_TEMPLATES=[['standard','Genosync standard'],['keypoints','Key Points (JAMA-style)'],['context','Research in context (BMJ / Lancet-style)']];
-var PUB_HEADERS=[['title','D. Logo + centred title (current)'],['masthead','A. Centred masthead (NEJM-style)'],['citation','B. Logo + citation block (BMJ / JAMA-style)'],['band','C. Colour band (journal-brand style)']];
-function pubHdr(){var h=window.__HDR||S.pdfHeader||'title';return /^(title|masthead|citation|band)$/.test(h)?h:'title';}
+function pubAsset(n){var base=(window.IJMMS_ASSETS!=null&&!window.__RD)?window.IJMMS_ASSETS:'/';try{return new URL(base+'assets/'+n,location.href).href;}catch(e){return '/assets/'+n;}}
+var PUB_HEADERS=[['title','D. Logo + centred title (current)'],['masthead','A. Centred masthead (NEJM-style)'],['citation','B. Logo, journal name and citation block (BMJ / JAMA-style)'],['band','C. Colour band (journal-brand style)']];
+function pubHdr(){var h=window.__HDR||S.pdfHeader||'citation';return /^(title|masthead|citation|band)$/.test(h)?h:'citation';}
 function pubTpl(a){var t=a.tpl||S.pdfTemplate||'standard';return /^(standard|keypoints|context)$/.test(t)?t:'standard';}
 function pubOrcid(x){var o=String(x.orcid||'').replace(/^https?:\/\/orcid\.org\//i,'').trim();if(!/^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/i.test(o))return '';
  return ' <a class="orcid" href="https://orcid.org/'+o+'" title="ORCID '+o+'"><svg viewBox="0 0 24 24" width="9" height="9"><circle cx="12" cy="12" r="12" fill="#A6CE39"/><text x="12" y="16.5" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="11" fill="#fff">iD</text></svg></a>';}
@@ -116,7 +117,9 @@ printHTML=function(a){
  '.pubstd .h-mast .mline{display:flex;justify-content:space-between;font:7.6pt '+SANS+';color:'+B.p+';letter-spacing:.3pt}',
  '.pubstd .h-type{text-align:center;font:bold 9.5pt '+SANS+';letter-spacing:3pt;text-transform:uppercase;color:#9b1c1c;margin:3.5mm 0 1.5mm}',
  '.pubstd .idstrip.c{justify-content:center;gap:1mm 6mm}',
- '.pubstd .h-cite{display:flex;justify-content:space-between;align-items:flex-end;gap:6mm}.pubstd .h-cite .lg img{height:19mm;width:auto;display:block}',
+ '.pubstd .h-cite{display:grid;grid-template-columns:23mm 1fr auto;align-items:center;column-gap:5mm}.pubstd .h-cite .lg img.circ{width:23mm;height:23mm;display:block}',
+ '.pubstd .h-cite .nmw{text-align:center}.pubstd .h-cite .nmw img{height:15.5mm;width:auto;max-width:100%;display:inline-block}',
+ '.pubstd .h-cite .wtxt{display:inline-block;text-align:center;font:bold 15pt/1.12 '+F+'}.pubstd .h-cite .wtxt span{display:block;color:'+B.ink+'}.pubstd .h-cite .wtxt span+span{color:'+B.a+';font-size:17pt}.pubstd .h-cite .wtxt i{display:flex;align-items:center;gap:1.2mm;margin:1.4mm auto 0;width:100%}.pubstd .h-cite .wtxt i:before,.pubstd .h-cite .wtxt i:after{content:"";flex:1;height:.45mm;background:'+B.ink+'}.pubstd .h-cite .wtxt i b{display:block;width:22mm;height:1.3mm;background:'+B.a+';transform:skewX(-35deg)}',
  '.pubstd .h-cite .cr{text-align:right;font:7.4pt/1.45 '+SANS+';color:#333}.pubstd .h-cite .ty{font:bold 11pt '+SANS+';letter-spacing:1.5pt;text-transform:uppercase;color:#9b1c1c;margin-bottom:1mm}.pubstd .h-cite .cl{font:bold 8.4pt '+SANS+';color:'+B.p+';margin-bottom:.6mm}.pubstd .h-cite .is b{color:'+B.p+'}',
  '.pubstd .h-band{display:flex;align-items:center;gap:5mm;background:'+B.p+';padding:2.5mm 4mm;border-bottom:1.4mm solid '+B.g+';margin-bottom:1.8mm}.pubstd .h-band .plate{background:#fff;border-radius:1.5mm;padding:1.2mm 2.5mm}.pubstd .h-band .plate img{height:15mm;width:auto;display:block}',
  '.pubstd .h-band .bn{flex:1;text-align:center;font:bold 16pt/1.15 '+F+';color:#fff;text-wrap:balance}.pubstd .h-band .bn small{display:block;font:bold 8pt '+SANS+';letter-spacing:1.6pt;color:#f1d58a;margin-top:1mm}',
@@ -175,7 +178,7 @@ printHTML=function(a){
  var head;
  if(H==='masthead')head='<div class="h-mast"><div class="lg">'+logo+'</div><div class="rules"></div><div class="mline"><span>'+esc(S.short)+' &middot; Volume '+esc(a.vol)+', Issue '+esc(a.issue)+' &middot; '+esc(a.period||a.year)+'</span><span>'+(pubHost()?esc(pubHost()):pubPh('','www.example.com'))+'</span></div></div>'
    +'<div class="h-type">'+esc(a.type||'Original Research')+'</div><div class="idstrip c">'+ids.replace(/<span><b>Volume[\s\S]*?<\/span>$/,'')+'<span><b>Article DOI:</b> '+adoi+'</span></div>';
- else if(H==='citation')head='<div class="h-cite"><div class="lg">'+logo+'</div><div class="cr"><div class="ty">'+esc(a.type||'Original Research')+'</div><div class="cl">'+citeLine+'</div><div class="is"><b>P-ISSN</b> '+pubPh(S.issnP,'XXXX-XXXX')+' &nbsp; <b>E-ISSN</b> '+pubPh(S.issnO,'XXXX-XXXX')+' &nbsp; <b>Web</b> '+(pubHost()?'<a href="'+esc(pubSite())+'">'+esc(pubHost())+'</a>':pubPh('','www.example.com'))+'</div><div class="is"><b>DOI prefix</b> '+pubPh(S.doiPrefix&&!/x{3,}/i.test(S.doiPrefix)?S.doiPrefix:'','10.XXXXX')+' &nbsp; <b>Frequency</b> '+pubPh(S.freq,'Quarterly / Biannual')+'</div></div></div><div class="divider"></div><div style="height:2.5mm"></div>';
+ else if(H==='citation')head='<div class="h-cite"><div class="lg"><img class="circ" src="'+pubAsset(JID==='ls'?'logo-ls-circle.png':'logo-circle.png')+'" alt="'+esc(S.short)+' logo"></div><div class="nmw">'+(JID==='ls'?'<div class="wtxt"><span>International Journal of</span><span>Modern Life Sciences</span><i><b></b></i></div>':'<img src="'+pubAsset('wordmark-ms.png')+'" alt="'+esc(S.name)+'">')+'</div><div class="cr"><div class="ty">'+esc(a.type||'Original Research')+'</div><div class="cl">'+citeLine+'</div><div class="is"><b>P-ISSN</b> '+pubPh(S.issnP,'XXXX-XXXX')+' &nbsp; <b>E-ISSN</b> '+pubPh(S.issnO,'XXXX-XXXX')+' &nbsp; <b>Web</b> '+(pubHost()?'<a href="'+esc(pubSite())+'">'+esc(pubHost())+'</a>':pubPh('','www.example.com'))+'</div><div class="is"><b>DOI prefix</b> '+pubPh(S.doiPrefix&&!/x{3,}/i.test(S.doiPrefix)?S.doiPrefix:'','10.XXXXX')+' &nbsp; <b>Frequency</b> '+pubPh(S.freq,'Quarterly / Biannual')+'</div></div></div><div class="divider"></div><div style="height:2.5mm"></div>';
  else if(H==='band')head='<div class="h-band"><div class="plate">'+logo+'</div><div class="bn">'+esc(S.name)+'<small>'+esc(S.short)+' &middot; '+(pubHost()?esc(pubHost()):'www.example.com')+'</small></div></div><div class="idstrip">'+ids+'</div>'+catline;
  else head='<div class="pihead"><div class="lg">'+logo+'</div>'
   +'<div class="nm">'+esc(S.name)+'<small>'+esc(S.short)+'</small></div></div>'
