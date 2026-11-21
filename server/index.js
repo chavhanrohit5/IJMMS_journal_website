@@ -715,6 +715,11 @@ async function ensureAdmin() {
 }
 async function start() {
   await db.init();
+  { // one-time content fix: drop 'submission is free' wording from saved texts
+    const st = await db.kvGet('settings', {}); let ch = false;
+    Object.keys(st).forEach((k) => { if (typeof st[k] !== 'string' || !/ubmission is free/.test(st[k])) return; st[k] = st[k].replace(/Submission is free and every manuscript undergoes/g, 'Every manuscript undergoes').replace(/(Manuscript )?[Ss]ubmission is free( of charge)?[.;]? ?/g, ''); ch = true; });
+    if (ch) await db.kvSet('settings', st);
+  }
   await ensureAdmin();
   setInterval(() => db.q('DELETE FROM sessions WHERE exp<now()').catch(() => {}), 3600e3).unref();
   return new Promise((resolve) => {
