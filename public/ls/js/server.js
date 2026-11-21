@@ -71,7 +71,7 @@ ACT.savesettings=async function(t){var e=$('s-pw'),pw=e?e.value:'';if(pw){if(pw.
 function snapRev(){var o={};REVAPPS.forEach(function(r){o[r.id]=JSON.stringify(r);});return o;}
 saveRev=function(){return srvQ(async function(){var snap=SRV.revSnap||{};for(var i=0;i<REVAPPS.length;i++){var r=REVAPPS[i];if(!snap[r.id]){var x=await api('POST','/api/revapps',r);Object.assign(r,x.app);}else if(snap[r.id]!==JSON.stringify(r)&&isAdmin())await api('PUT','/api/revapps/'+encodeURIComponent(r.id),r);}
   if(isAdmin())for(var id in snap)if(!REVAPPS.some(function(r){return r.id===id;}))await api('DELETE','/api/revapps/'+encodeURIComponent(id));SRV.revSnap=snapRev();});};
-rvStore=async function(r,f,ex){try{await DB.putFile('rv_'+r.id,f);r.hasCv=true;}catch(e){toast(e.message);return;}
+rvStore=async function(r,f,ex){try{if(f){await DB.putFile('rv_'+r.id,f);r.hasCv=true;}}catch(e){toast(e.message);return;}
  try{var x=await api('POST','/api/revapps',r);Object.assign(r,x.app);}catch(e){toast(e.message);return;}
  REVAPPS.push(r);SRV.revSnap=snapRev();rvEmails(r,'ack');
  queueMail(S.email,S.short+' editorial office','New reviewer application: '+r.name+' ['+r.ref+']','A new reviewer application was received.\n\nName: '+r.name+'\nE-mail: '+r.email+'\nAffiliation: '+r.aff+'\nExpertise: '+ex.join('; ')+'\n\nReview it in Admin panel > Reviewer applications.\n');

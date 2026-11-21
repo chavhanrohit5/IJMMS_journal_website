@@ -15,7 +15,7 @@ function vEditor(id){var a=id?findArt(id):null;if(id&&!a)return '<div class="car
  var ta=function(i,l,val,ph,r){return '<div class="fg"><label>'+l+'</label><textarea id="'+i+'" rows="'+(r||3)+'" placeholder="'+esc(ph||'')+'">'+esc(val)+'</textarea></div>';};
  return '<div class="card"><h3>'+(a?'Edit article':'New article')+'</h3>'
  +'<div class="note">Formatting in text boxes: blank line = paragraph; <code>**bold**</code> <code>*italic*</code> <code>x^2^</code> <code>H~2~O</code>; lines starting with <code>- </code> make a list; <code>### Subheading</code>; table = lines starting with <code>|</code> (first row is header); <code>{{fig 1}}</code> places a figure.</div>'
- +'<div class="row2"><div class="fg"><label>Article type</label><select id="f-type">'+opt(types,d.type)+'</select></div>'+v('f-title','Title *',d.title,'Full article title')+'</div><div class="fg"><label>Subject area (medical / life sciences)</label><select id="f-branch">'+branchOpts(d.branch)+'</select></div>'
+ +'<div class="row2"><div class="fg"><label>Article type</label><select id="f-type">'+opt(types,d.type)+'</select></div>'+v('f-title','Title',d.title,'Full article title')+'</div><div class="fg"><label>Subject area (medical / life sciences)</label><select id="f-branch">'+branchOpts(d.branch)+'</select></div>'
  +ta('f-authors','Authors * (one per line: Name | Affiliation | ORCID optional)',d.authorsRaw,'Amit Sharma | Department of Surgery, AIIMS, New Delhi, India\nPriya Rao | Department of Pharmacology, Yash Institute of Pharmacy, India',4)
  +v('f-corr','Corresponding author (name, email)',d.corr,'Amit Sharma, amit@example.com')
  +v('f-kw','Keywords (comma separated)',(d.keywords||[]).join(', '),'')

@@ -38,7 +38,7 @@ function vIndexing(){var l=idxShown();
 function vCopyright(){var u=curUser(),mine=u?SUBS.filter(function(s){return isAdmin()||s.authorId===u.id;}):[];
  var sel=mine.length?'<div class="fg"><label>Fill from my manuscript</label><select id="cf-pick"><option value="">- choose -</option>'+mine.map(function(s){return '<option value="'+esc(s.id)+'">'+esc((s.ref||'')+' '+s.title.slice(0,70))+'</option>';}).join('')+'</select></div>':'';
  return hd('Copyright Form','Copyright and licence-to-publish agreement (up to 5 authors)')+pg('<div class="card"><p style="font-size:14px">Complete the details below and generate the PDF. Print it, have every author sign, and return the scanned copy to <a href="mailto:'+esc(S.email)+'">'+esc(S.email)+'</a> after your manuscript is accepted. If you are logged in, you can also generate it from your dashboard.</p>'+sel
-  +'<div class="fg"><label>Manuscript title *</label><input id="cf-title"></div><div class="row2"><div class="fg"><label>Reference number (if any)</label><input id="cf-ref"></div><div class="fg"><label>Article type</label><select id="cf-type">'+opt(SUB_TYPES,'Original Research')+'</select></div></div>'
+  +'<div class="fg"><label>Manuscript title</label><input id="cf-title"></div><div class="row2"><div class="fg"><label>Reference number (if any)</label><input id="cf-ref"></div><div class="fg"><label>Article type</label><select id="cf-type">'+opt(SUB_TYPES,'Original Research')+'</select></div></div>'
   +'<div class="fg"><label>Authors * (up to 5, one per line: Name | Affiliation | Email)</label><textarea id="cf-auth" rows="5"></textarea></div><div class="fg"><label>Corresponding author (name)</label><input id="cf-corr"></div><button class="btn teal" data-act="cfgen">Generate copyright form (PDF)</button></div>');}
 
 /* ---------- visitors counter ---------- */
@@ -63,10 +63,10 @@ function vJoin(){
  if(window._rvdone){var r=findRev(window._rvdone);if(r)return hd('Join as Reviewer','Application received')+pg('<div class="card"><h3 style="margin-top:0">Thank you, '+esc(r.name)+'.</h3><p>Your reviewer application has been received. Reference: <b>'+esc(r.ref)+'</b>. The editorial office will evaluate it and contact you at <b>'+esc(r.email)+'</b>. An acknowledgement e-mail has been prepared in the journal outbox.</p><p><button class="btn gold" data-act="rvackpdf" data-id="'+esc(r.id)+'">Download acknowledgement (PDF)</button> <a class="btn ghost" href="#/home">Back to home</a></p></div>');}
  var br=branchFlat(JBR);
  return hd('Join as Reviewer','Peer reviewers are essential to '+esc(S.short)+'. Apply to join our reviewer panel.')+pg('<div class="card"><div class="note">Reviewing is a confidential scholarly service. Submitting this form does not guarantee appointment. Please upload an up-to-date resume / CV.</div>'
- +'<div class="row2"><div class="fg"><label>Full name *</label><input id="rv-n"></div><div class="fg"><label>E-mail *</label><input id="rv-e" type="email"></div></div>'
+ +'<div class="row2"><div class="fg"><label>Full name</label><input id="rv-n"></div><div class="fg"><label>E-mail</label><input id="rv-e" type="email"></div></div>'
  +'<div class="row2"><div class="fg"><label>Phone / WhatsApp</label><input id="rv-p"></div><div class="fg"><label>ORCID iD</label><input id="rv-o" placeholder="0000-0000-0000-0000"></div></div>'
- +'<div class="row2"><div class="fg"><label>Affiliation / institution *</label><input id="rv-a"></div><div class="fg"><label>Designation *</label><input id="rv-d" placeholder="e.g. Assistant Professor"></div></div>'
- +'<div class="row2"><div class="fg"><label>Highest qualification *</label><input id="rv-q" placeholder="e.g. MD, PhD, Pharm.D"></div><div class="fg"><label>Years of experience</label><input id="rv-y" type="number" min="0"></div></div>'
+ +'<div class="row2"><div class="fg"><label>Affiliation / institution</label><input id="rv-a"></div><div class="fg"><label>Designation</label><input id="rv-d" placeholder="e.g. Assistant Professor"></div></div>'
+ +'<div class="row2"><div class="fg"><label>Highest qualification</label><input id="rv-q" placeholder="e.g. MD, PhD, Pharm.D"></div><div class="fg"><label>Years of experience</label><input id="rv-y" type="number" min="0"></div></div>'
  +'<div class="fg"><label>Areas of expertise * (hold Ctrl / Cmd to select several)</label><select id="rv-ex" multiple size="8">'+br.map(function(x){return '<option>'+esc(x)+'</option>';}).join('')+'</select></div>'
  +'<div class="fg"><label>Keywords / specific interests</label><input id="rv-kw"></div>'
  +'<div class="row2"><div class="fg"><label>Profile link (Google Scholar / ResearchGate / institutional)</label><input id="rv-u"></div><div class="fg"><label>Number of publications</label><input id="rv-pub" type="number" min="0"></div></div>'
@@ -119,7 +119,7 @@ function cfHTML(d){var rows='';for(var i=0;i<5;i++){var a=d.authors[i]||{};rows+
  +'<div class="foot">Return the signed form (scan or photograph) to '+esc(S.email)+' quoting the manuscript reference. &middot; '+esc(S.publisher)+(S.address?', '+esc(S.address):'')+'</div>');}
 
 async function rvStore(r,f,ex){
-  try{await DB.putFile('rv_'+r.id,f);r.hasCv=true;}catch(e){toast('Resume could not be stored in this browser; application saved without it.');}
+  try{if(f){await DB.putFile('rv_'+r.id,f);r.hasCv=true;}}catch(e){toast('Resume could not be stored in this browser; application saved without it.');}
   REVAPPS.push(r);saveRev();rvEmails(r,'ack');
   queueMail(S.email,S.short+' editorial office','New reviewer application: '+r.name+' ['+r.ref+']','A new reviewer application was received.\n\nName: '+r.name+'\nE-mail: '+r.email+'\nAffiliation: '+r.aff+'\nExpertise: '+ex.join('; ')+'\n\nReview it in Admin panel > Reviewer applications.\n');
   window._rvdone=r.id;route();toast('Application submitted.');}
@@ -129,11 +129,10 @@ Object.assign(ACT,{
  rvfilter:function(t){window._rvf=t.dataset.f;route();},
  rvsubmit:async function(){var g=function(i){var e=$(i);return e?e.value.trim():'';};var ex=[].slice.call($('rv-ex').selectedOptions).map(function(o){return o.value;});
   var f=$('rv-cv').files[0];
-  if(!g('rv-n')||!/^\S+@\S+\.\S+$/.test(g('rv-e'))||!g('rv-a')||!g('rv-d')||!g('rv-q')){toast('Please complete name, valid e-mail, affiliation, designation and qualification.');return;}
-  if(!ex.length){toast('Select at least one area of expertise.');return;}if(!f){toast('Please attach your resume / CV.');return;}if(f.size>3*1024*1024){toast('Resume must be 3 MB or smaller.');return;}
-  if(!$('rv-ok').checked){toast('Please accept the declaration.');return;}
+  if(!g('rv-n')||!/^\S+@\S+\.\S+$/.test(g('rv-e'))){toast('Please give your name and e-mail so that we can reply to you.');return;}
+  if(f&&f.size>3*1024*1024){toast('Resume must be 3 MB or smaller.');return;}
   if(REVAPPS.some(function(r){return r.email.toLowerCase()===g('rv-e').toLowerCase()&&r.status!=='Rejected';})){toast('An application with this e-mail already exists.');return;}
-  var r={id:uid(),ref:revRef(),name:g('rv-n'),email:g('rv-e'),phone:g('rv-p'),orcid:g('rv-o'),aff:g('rv-a'),desig:g('rv-d'),qual:g('rv-q'),years:g('rv-y'),expertise:ex,kw:g('rv-kw'),url:g('rv-u'),pubs:g('rv-pub'),rev:g('rv-rev'),avail:g('rv-av'),note:g('rv-note'),status:'Pending',date:today(),created:Date.now(),hasCv:false,cvName:f.name};
+  var r={id:uid(),ref:revRef(),name:g('rv-n'),email:g('rv-e'),phone:g('rv-p'),orcid:g('rv-o'),aff:g('rv-a'),desig:g('rv-d'),qual:g('rv-q'),years:g('rv-y'),expertise:ex,kw:g('rv-kw'),url:g('rv-u'),pubs:g('rv-pub'),rev:g('rv-rev'),avail:g('rv-av'),note:g('rv-note'),status:'Pending',date:today(),created:Date.now(),hasCv:false,cvName:f?f.name:''};
   await rvStore(r,f,ex);},
  rvackpdf:function(t){var r=findRev(t.dataset.id);if(r)docOpen(revLetterHTML(r,'ack'));},
  rvappointpdf:function(t){var r=findRev(t.dataset.id);if(r)docOpen(revLetterHTML(r,'appoint'));},
@@ -147,7 +146,7 @@ Object.assign(ACT,{
  rvreject:function(t){var r=findRev(t.dataset.id);if(!r)return;var why=prompt('Reason for rejection (optional, included in the e-mail):','');if(why===null)return;r.status='Rejected';saveRev();
   queueMail(r.email,r.name,'['+r.ref+'] Your reviewer application - '+S.short,'Dear '+r.name+',\n\nThank you for your interest in joining the reviewer panel of '+S.name+'. After evaluation we are unable to take your application forward at this time.'+(why?'\n\nNote: '+why:'')+'\n\nYou are welcome to apply again in future.\n'+sigText());toast('Rejected. E-mail prepared in Outbox.');route();},
  rvdel:async function(t){var r=findRev(t.dataset.id);if(!r||!confirm('Delete this application permanently?'))return;try{await DB.delFile('rv_'+r.id);}catch(e){}REVAPPS.splice(REVAPPS.indexOf(r),1);saveRev();route();},
- cfgen:function(){var au=($('cf-auth').value||'').split('\n').map(function(l){return l.trim();}).filter(Boolean);if(!$('cf-title').value.trim()||!au.length){toast('Enter the title and at least one author.');return;}
+ cfgen:function(){var au=($('cf-auth').value||'').split('\n').map(function(l){return l.trim();}).filter(Boolean);
   var d=cfData({title:$('cf-title').value.trim(),ref:$('cf-ref').value.trim(),type:$('cf-type').value,authorsRaw:au.join('\n'),corr:$('cf-corr').value.trim()});docOpen(cfHTML(d));},
  cfsub:function(t){var s=findSub(t.dataset.id);if(s)docOpen(cfHTML(cfData(s)));},
  cfart:function(t){var a=findArt(t.dataset.id);if(a)docOpen(cfHTML(cfData(a)));}

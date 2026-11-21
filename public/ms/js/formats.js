@@ -131,19 +131,19 @@ function fmtConfText(c){if(!c||!c.name)return '';return (c.kind||'Presented')+' 
 function fmtForm(type,d,mode){var T=fmtType(type);d=d||{};var abs=d.abs||{},secs={},dl=d.decl||{},xx=d.x||{},cf=d.conf||{};(d.secs||[]).forEach(function(x){secs[x.h]=x.t;});
  var h='<div class="fmtbox"><div class="fmtinfo"><b>'+esc(T.t)+'</b> &middot; '+esc(T.d)+'<div class="lims"><span>Words: <b>'+T.w[0].toLocaleString()+'&ndash;'+T.w[1].toLocaleString()+'</b></span><span>Abstract: <b>'+(T.ab?(T.ab.h?'structured, ':'')+T.ab.n+' words':'not required')+'</b></span><span>Keywords: <b>'+(T.kw[1]?T.kw[0]+'&ndash;'+T.kw[1]:'optional')+'</b></span><span>References: <b>&le; '+T.refs+'</b></span><span>Tables: <b>&le; '+T.tab+'</b></span><span>Figures: <b>&le; '+T.fig+'</b></span></div><div class="rg">Reporting guideline: '+esc(T.rg)+'</div></div>';
  if(T.ab){h+='<h4 class="fsec">Abstract <small id="wc-abs" class="wcc"></small></h4>';
-  if(T.ab.h)h+=T.ab.h.map(function(x){return '<div class="fg"><label>'+esc(x)+' *</label><textarea class="fa" data-h="'+esc(x)+'" rows="3">'+esc(abs[x]||'')+'</textarea></div>';}).join('');
-  else h+='<div class="fg"><label>Abstract * (unstructured, one paragraph)</label><textarea class="fa" data-h="_" rows="6">'+esc(abs._||'')+'</textarea></div>';}
- if(T.x.indexOf('confDetails')>-1){h+='<h4 class="fsec">Conference details</h4><div class="row2"><div class="fg"><label>Conference name *</label><input id="cf-name" value="'+esc(cf.name||'')+'"></div><div class="fg"><label>Venue (city, country) *</label><input id="cf-venue" value="'+esc(cf.venue||'')+'"></div></div><div class="row3"><div class="fg"><label>Dates *</label><input id="cf-date" value="'+esc(cf.date||'')+'" placeholder="12-14 Jan 2027"></div><div class="fg"><label>Presentation</label><select id="cf-kind">'+opt(PRES_TYPES,cf.kind||'Oral presentation')+'</select></div><div class="fg"><label>Presenting author</label><input id="cf-presenter" value="'+esc(cf.presenter||'')+'"></div></div>';}
+  if(T.ab.h)h+=T.ab.h.map(function(x){return '<div class="fg"><label>'+esc(x)+'</label><textarea class="fa" data-h="'+esc(x)+'" rows="3">'+esc(abs[x]||'')+'</textarea></div>';}).join('');
+  else h+='<div class="fg"><label>Abstract (unstructured, one paragraph)</label><textarea class="fa" data-h="_" rows="6">'+esc(abs._||'')+'</textarea></div>';}
+ if(T.x.indexOf('confDetails')>-1){h+='<h4 class="fsec">Conference details</h4><div class="row2"><div class="fg"><label>Conference name</label><input id="cf-name" value="'+esc(cf.name||'')+'"></div><div class="fg"><label>Venue (city, country)</label><input id="cf-venue" value="'+esc(cf.venue||'')+'"></div></div><div class="row3"><div class="fg"><label>Dates</label><input id="cf-date" value="'+esc(cf.date||'')+'" placeholder="12-14 Jan 2027"></div><div class="fg"><label>Presentation</label><select id="cf-kind">'+opt(PRES_TYPES,cf.kind||'Oral presentation')+'</select></div><div class="fg"><label>Presenting author</label><input id="cf-presenter" value="'+esc(cf.presenter||'')+'"></div></div>';}
  if(T.s.length){h+='<h4 class="fsec">Manuscript sections <small id="wc-body" class="wcc"></small></h4><p class="note" style="font-size:12.5px;margin-top:0">Paste the text of each section into its box (tables and figure files are uploaded below). Mark subheadings with ###. Cite references as [1], [2].</p>';
-  h+=T.s.map(function(x){return '<div class="fg fsecrow"><label>'+esc(x[0])+(x[2]?' *':' (optional)')+'</label><div class="hint">'+esc(x[1])+'</div><textarea class="fs" data-h="'+esc(x[0])+'" data-req="'+(x[2]?1:0)+'" rows="'+(x[0]==='Materials and Methods'||x[0]==='Methods'||x[0]==='Results'||x[0]==='Main Body'||x[0]==='Procedure'||x[0]==='Case Descriptions'?8:4)+'">'+esc(secs[x[0]]||'')+'</textarea></div>';}).join('');
-  h+='<div class="fg"><label>References (one per line, Vancouver style, in order of citation) *</label><textarea id="fm-refs" rows="5" placeholder="1. Author AB, Author CD. Title of article. Abbreviated Journal. 2024;12(3):45-52. doi:10.xxxx/xxxxx">'+esc(d.refs||'')+'</textarea></div>';}
+  h+=T.s.map(function(x){return '<div class="fg fsecrow"><label>'+esc(x[0])+'</label><div class="hint">'+esc(x[1])+'</div><textarea class="fs" data-h="'+esc(x[0])+'" data-req="'+(x[2]?1:0)+'" rows="'+(x[0]==='Materials and Methods'||x[0]==='Methods'||x[0]==='Results'||x[0]==='Main Body'||x[0]==='Procedure'||x[0]==='Case Descriptions'?8:4)+'">'+esc(secs[x[0]]||'')+'</textarea></div>';}).join('');
+  h+='<div class="fg"><label>References (one per line, Vancouver style, in order of citation)</label><textarea id="fm-refs" rows="5" placeholder="1. Author AB, Author CD. Title of article. Abbreviated Journal. 2024;12(3):45-52. doi:10.xxxx/xxxxx">'+esc(d.refs||'')+'</textarea></div>';}
  var xs=T.x.filter(function(k){return XF[k];});if(xs.length)h+='<h4 class="fsec">Registration and reporting</h4><div class="row2">'+xs.map(function(k){return '<div class="fg"><label>'+esc(XF[k][0])+'</label><input class="fx" data-k="'+k+'" value="'+esc(xx[k]||'')+'" placeholder="'+esc(XF[k][1])+'"></div>';}).join('')+'</div>';
- if(T.x.indexOf('consentOk')>-1)h+='<label class="ck"><input type="checkbox" id="fm-consentok"'+(xx.consentOk?' checked':'')+'> Written consent for publication has been obtained from the patient(s) or guardian(s) and is uploaded below. *</label>';
- h+='<h4 class="fsec">Declarations</h4><div class="row2">'+T.decl.map(function(k){var D=DECL[k];return '<div class="fg"><label>'+esc(D[0])+(k==='ack'?' (optional)':' *')+' <a href="#" class="usetpl" data-k="'+k+'" data-v="'+esc(D[2])+'"'+(D[2]?'':' style="display:none"')+'>use standard wording</a></label><textarea class="fd" data-k="'+k+'" rows="2" placeholder="'+esc(D[1])+'">'+esc(dl[k]||'')+'</textarea></div>';}).join('')+'</div>';
+ if(T.x.indexOf('consentOk')>-1)h+='<label class="ck"><input type="checkbox" id="fm-consentok"'+(xx.consentOk?' checked':'')+'> Written consent for publication has been obtained from the patient(s) or guardian(s) and is uploaded below.</label>';
+ h+='<h4 class="fsec">Declarations</h4><div class="row2">'+T.decl.map(function(k){var D=DECL[k];return '<div class="fg"><label>'+esc(D[0])+' <a href="#" class="usetpl" data-k="'+k+'" data-v="'+esc(D[2])+'"'+(D[2]?'':' style="display:none"')+'>use standard wording</a></label><textarea class="fd" data-k="'+k+'" rows="2" placeholder="'+esc(D[1])+'">'+esc(dl[k]||'')+'</textarea></div>';}).join('')+'</div>';
  if(T.t!=='Conference Abstract'){var pc=d.pres||{};h+='<h4 class="fsec">Conference presentation</h4><label class="ck"><input type="checkbox" id="pr-on"'+(pc.name?' checked':'')+'> This work was presented as an abstract at a conference</label><div id="pr-box"'+(pc.name?'':' style="display:none"')+'><div class="row2"><div class="fg"><label>Conference name</label><input id="pr-name" value="'+esc(pc.name||'')+'"></div><div class="fg"><label>Venue (city, country)</label><input id="pr-venue" value="'+esc(pc.venue||'')+'"></div></div><div class="row2"><div class="fg"><label>Date</label><input id="pr-date" value="'+esc(pc.date||'')+'"></div><div class="fg"><label>Presentation</label><select id="pr-kind">'+opt(PRES_TYPES,pc.kind||'Oral presentation')+'</select></div></div></div>';}
  var have={};(d.files||[]).forEach(function(f){(have[f.slot]=have[f.slot]||[]).push(f);});
  h+='<h4 class="fsec">Upload files</h4><table class="t upt"><tr><th style="width:38%">File</th><th>Upload</th></tr>'+T.up.map(function(sl){var u=fUp(sl),ex=have[u.k]||(u.k==='manuscript'&&d.mainName?[{name:d.mainName}]:[]);
-  return '<tr><td><b>'+esc(u.l)+'</b>'+(u.req?' <span class="rq">required</span>':'')+(u.h?'<div class="hint">'+esc(u.h)+'</div>':'')+'<div class="hint">'+esc(u.acc.replace(/\./g,'').toUpperCase().split(',').join(', '))+(u.m?' &middot; several files allowed':'')+'</div></td><td><input type="file" class="fu" data-k="'+u.k+'" data-req="'+(u.req?1:0)+'" accept="'+u.acc+'"'+(u.m?' multiple':'')+'>'+(ex.length?'<div class="hint">Already uploaded: '+ex.map(function(f){return esc(f.name);}).join(', ')+(mode==='edit'?' (choose new files to replace)':'')+'</div>':'')+(u.k==='fig'?'<div class="figcaps" data-k="fig">'+(have.fig||[]).map(function(f,i){return '<div class="fg"><label>Figure '+(i+1)+' legend ('+esc(f.name)+')</label><input class="fcap" value="'+esc(f.caption||'')+'"></div>';}).join('')+'</div>':'')+'</td></tr>';}).join('')+'</table>';
+  return '<tr><td><b>'+esc(u.l)+'</b>'+(u.h?'<div class="hint">'+esc(u.h)+'</div>':'')+'<div class="hint">'+esc(u.acc.replace(/\./g,'').toUpperCase().split(',').join(', '))+(u.m?' &middot; several files allowed':'')+'</div></td><td><input type="file" class="fu" data-k="'+u.k+'" data-req="'+(u.req?1:0)+'" accept="'+u.acc+'"'+(u.m?' multiple':'')+'>'+(ex.length?'<div class="hint">Already uploaded: '+ex.map(function(f){return esc(f.name);}).join(', ')+(mode==='edit'?' (choose new files to replace)':'')+'</div>':'')+(u.k==='fig'?'<div class="figcaps" data-k="fig">'+(have.fig||[]).map(function(f,i){return '<div class="fg"><label>Figure '+(i+1)+' legend ('+esc(f.name)+')</label><input class="fcap" value="'+esc(f.caption||'')+'"></div>';}).join('')+'</div>':'')+'</td></tr>';}).join('')+'</table>';
  h+='</div>';
  return h;}
 
@@ -158,17 +158,10 @@ function fmtRead(type){var T=fmtType(type),d={type:T.t,abs:{},secs:[],decl:{},x:
  if($('pr-on')&&$('pr-on').checked)d.pres={name:$('pr-name').value.trim(),venue:$('pr-venue').value.trim(),date:$('pr-date').value.trim(),kind:$('pr-kind').value};
  return d;}
 function fmtCheck(type,d,isNew){var T=fmtType(type),e=[],w=[];
- if(T.ab){if(T.ab.h)T.ab.h.forEach(function(h){if(!d.abs[h])e.push('Abstract - '+h);});else if(!d.abs._)e.push('Abstract');
-  var n=fwc(fmtComposeAbs(T,d.abs));if(n>T.ab.n)w.push('Abstract is '+n+' words (limit '+T.ab.n+').');}
- T.s.forEach(function(x){var v=d.secs.filter(function(y){return y.h===x[0];})[0];if(x[2]&&!(v&&v.t))e.push(x[0]);});
- if(T.s.length&&!d.refs&&T.t!=='Letter to Editor')e.push('References');
- if(d.conf&&(!d.conf.name||!d.conf.venue||!d.conf.date))e.push('Conference name, venue and dates');
- T.decl.forEach(function(k){if(k!=='ack'&&!d.decl[k])e.push(DECL[k][0]);});
- if(T.x.indexOf('consentOk')>-1&&!d.x.consentOk)e.push('Consent confirmation');
- if(isNew)document.querySelectorAll('.fmtbox .fu').forEach(function(f){if(f.dataset.req==='1'&&!f.files.length)e.push('Upload: '+fUp(T.up.filter(function(s){return s[0]===f.dataset.k;})[0]).l);});
- var body=d.secs.reduce(function(s,x){return s+fwc(x.t);},0);if(T.s.length&&body&&body>T.w[1])w.push('Main text is '+body+' words (limit '+T.w[1]+').');
+ if(T.ab){var n=fwc(fmtComposeAbs(T,d.abs));if(n>T.ab.n)w.push('Abstract is '+n+' words (suggested limit '+T.ab.n+').');}
+ var body=d.secs.reduce(function(s,x){return s+fwc(x.t);},0);if(T.s.length&&body&&body>T.w[1])w.push('Main text is '+body+' words (suggested limit '+T.w[1]+').');
  document.querySelectorAll('.fmtbox .fu').forEach(function(f){var u=fUp(T.up.filter(function(s){return s[0]===f.dataset.k;})[0]);Array.prototype.forEach.call(f.files,function(x){if(x.size>25*1024*1024)e.push(x.name+' is larger than 25 MB');var ext='.'+x.name.split('.').pop().toLowerCase();if(u.acc.split(',').indexOf(ext)<0)e.push(x.name+': '+u.l+' accepts '+u.acc);});});
- var figs=document.querySelector('.fmtbox .fu[data-k="fig"]');if(figs&&figs.files.length>T.fig)w.push(figs.files.length+' figures uploaded (limit '+T.fig+').');
+ var figs=document.querySelector('.fmtbox .fu[data-k="fig"]');if(figs&&figs.files.length>T.fig)w.push(figs.files.length+' figures uploaded (suggested limit '+T.fig+').');
  return {e:e,w:w};}
 /* upload chosen files; returns file records */
 async function fmtUpload(sid,type,prev){var T=fmtType(type),out=(prev||[]).slice(),main=null;
@@ -194,15 +187,34 @@ document.addEventListener('change',function(e){var t=e.target;
  if(t.classList&&t.classList.contains('fu')&&t.dataset.k==='fig'){var box=t.parentNode.querySelector('.figcaps');if(box)box.innerHTML=Array.prototype.map.call(t.files,function(f,i){return '<div class="fg"><label>Figure '+(i+1)+' legend ('+esc(f.name)+')</label><input class="fcap" placeholder="Short title. Explanation of panels, arrows, stains, magnification and abbreviations."></div>';}).join('');}});
 document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('.usetpl');if(!a)return;e.preventDefault();var ta=a.closest('.fg').querySelector('textarea');if(ta&&(!ta.value.trim()||confirm('Replace the current text with the standard wording?'))){ta.value=a.dataset.v;}});
 
+/* --------------------------- authors: one card per author --------------------------- */
+var AUTH_F=[['name','Full name','Dr. A. B. Sharma'],['desig','Designation','Assistant Professor'],['dept','Department','Department of Pharmacology'],['inst','Institution','Name of college / hospital / university'],['place','City, State, Country','Chhatrapati Sambhajinagar, Maharashtra, India'],['email','E-mail','name@example.org'],['phone','Phone (optional)',''],['orcid','ORCID iD','0000-0000-0000-0000'],['qual','Qualifications','MBBS, MD']];
+function authCard(a,i){a=a||{};return '<div class="aucard" data-i="'+i+'"><div class="auhd"><b>Author '+(i+1)+'</b><label class="aucorr"><input type="radio" name="au-corr"'+(a.corr?' checked':'')+'> Corresponding author</label><span class="aubtn"><button type="button" class="btn sm ghost" data-act="auup" title="Move up">&uarr;</button><button type="button" class="btn sm ghost" data-act="audn" title="Move down">&darr;</button><button type="button" class="btn sm red" data-act="aurm" title="Remove">&times;</button></span></div>'
+ +'<div class="augrid">'+AUTH_F.map(function(f){return '<div class="fg"><label>'+esc(f[1])+'</label><input data-f="'+f[0]+'" value="'+esc(a[f[0]]||'')+'" placeholder="'+esc(f[2])+'"></div>';}).join('')+'</div></div>';}
+function authBlock(list){list=(list&&list.length?list:[{corr:true}]);return '<div class="fg"><label>Authors <span class="auhint">in the order they should appear in the article &middot; leave unused boxes empty &middot; use "Add author" for more than six</span></label><div id="au-list">'+list.map(authCard).join('')+'</div><button type="button" class="btn ghost" data-act="auadd">+ Add author</button></div>';}
+function authRenum(){document.querySelectorAll('#au-list .aucard').forEach(function(c,i){c.dataset.i=i;c.querySelector('.auhd b').textContent='Author '+(i+1);});}
+function authRead(){var list=[];document.querySelectorAll('#au-list .aucard').forEach(function(c){var a={};c.querySelectorAll('input[data-f]').forEach(function(e){a[e.dataset.f]=e.value.trim();});a.corr=c.querySelector('input[name="au-corr"]').checked;if(AUTH_F.some(function(f){return a[f[0]];}))list.push(a);});
+ if(list.length&&!list.some(function(a){return a.corr;}))list[0].corr=true;
+ var raw=list.map(function(a){var aff=[a.desig,a.dept,a.inst,a.place].filter(Boolean).join(', ');return [a.name||'Author',aff,a.orcid].filter(function(x,i){return i===0||x;}).join(' | ').replace(/ \| $/,'');}).join('\n');
+ var c=list.filter(function(a){return a.corr;})[0];return {list:list,raw:raw,corr:c?[c.name,c.email].filter(Boolean).join(', '):''};}
+function authFromSub(s){if(s.fmt&&s.fmt.authors&&s.fmt.authors.length)return s.fmt.authors;var cr=String(s.corr||'').toLowerCase();
+ return parseAuthors(s.authorsRaw||'').map(function(x,i){var em=(cr.indexOf(String(x.name).toLowerCase())>-1)?(String(s.corr).match(/[^\s,;<>()]+@[^\s,;<>()]+/)||[''])[0]:'';return {name:x.name,inst:x.aff||'',orcid:x.orcid||'',email:em,corr:!!em||(!cr&&i===0)};});}
+Object.assign(ACT,{
+ auadd:function(){var l=$('au-list');l.insertAdjacentHTML('beforeend',authCard({},l.children.length));var c=l.lastElementChild;c.querySelector('input').focus();},
+ aurm:function(t){var c=t.closest('.aucard'),l=$('au-list');if(l.children.length<2){c.querySelectorAll('input[data-f]').forEach(function(e){e.value='';});return;}var hasText=Array.prototype.some.call(c.querySelectorAll('input[data-f]'),function(e){return e.value.trim();});if(hasText&&!confirm('Remove this author?'))return;c.remove();authRenum();},
+ auup:function(t){var c=t.closest('.aucard');if(c.previousElementSibling)c.parentNode.insertBefore(c,c.previousElementSibling);authRenum();},
+ audn:function(t){var c=t.closest('.aucard');if(c.nextElementSibling)c.parentNode.insertBefore(c.nextElementSibling,c);authRenum();}
+});
+
 /* --------------------------- submission page --------------------------- */
 SUB_TYPES=FTYPES.map(function(x){return x.t;});
 vSubmit=function(){var u=curUser();if(!u)return hd('Submit manuscript')+pg('<div class="card">Please <a href="#/login">login</a> or <a href="#/register">register as an author</a> to submit a manuscript. Read the <a href="#/guidelines">author guidelines</a> first.</div>');
  var t0=SUB_TYPES[0];
  return hd('Submit manuscript','Choose the article type first: the form below changes to the sections, limits and files that type needs.')+pg('<div class="card fmtform">'
-  +'<div class="row2"><div class="fg"><label>Article type *</label><select id="sf-type" data-prev="'+esc(t0)+'">'+opt(SUB_TYPES,t0)+'</select></div><div class="fg"><label>Subject area (branch) *</label><select id="sf-branch">'+(typeof branchOpts==='function'?branchOpts(''):'')+'</select></div></div>'
-  +'<div class="fg"><label>Manuscript title *</label><input id="sf-title"></div>'
-  +'<div class="fg"><label>Authors * (one per line: Name | Affiliation | ORCID)</label><textarea id="sf-auth" rows="4">'+esc(u.name+(u.aff?' | '+u.aff:''))+'</textarea></div>'
-  +'<div class="row2"><div class="fg"><label>Corresponding author (name, email)</label><input id="sf-corr" value="'+esc(u.name+', '+u.email)+'"></div><div class="fg"><label>Keywords (comma separated)</label><input id="sf-kw"></div></div>'
+  +'<div class="row2"><div class="fg"><label>Article type</label><select id="sf-type" data-prev="'+esc(t0)+'">'+opt(SUB_TYPES,t0)+'</select></div><div class="fg"><label>Subject area (branch)</label><select id="sf-branch">'+(typeof branchOpts==='function'?branchOpts(''):'')+'</select></div></div>'
+  +'<div class="fg"><label>Manuscript title</label><input id="sf-title"></div>'
+  +authBlock([{name:u.name,email:u.email,inst:u.aff||'',corr:true},{},{},{},{},{}])
+  +'<div class="fg"><label>Keywords (comma separated)</label><input id="sf-kw"></div>'
   +'<div id="fmt-area">'+fmtForm(t0,{},'new')+'</div>'
   +'<div class="fg"><label>Cover note to the editor (optional)</label><textarea id="sf-note" rows="3"></textarea></div>'
   +'<div class="note" id="sf-apc" style="font-size:13px">'+(typeof apcSubNote==='function'?apcSubNote(t0):'')+'</div>'
@@ -210,25 +222,21 @@ vSubmit=function(){var u=curUser();if(!u)return hd('Submit manuscript')+pg('<div
   +'<button class="btn" data-act="subsubmit">Submit manuscript</button> <span id="sf-prog" style="font-size:13px;color:#5b6b7c"></span></div>');};
 
 ACT.subsubmit=async function(){var g=function(i){return $(i)?$(i).value.trim():'';},u=curUser(),type=g('sf-type'),T=fmtType(type);
- if(!g('sf-branch')){toast('Please select the subject area (branch).');return;}
- if(!g('sf-title')||!parseAuthors($('sf-auth').value).length){toast('Title and authors are required.');return;}
  var kw=g('sf-kw').split(/[,;]/).map(function(x){return x.trim();}).filter(Boolean);
- if(T.kw[0]&&kw.length<T.kw[0]){toast('Add at least '+T.kw[0]+' keywords.');return;}
- var d=fmtRead(type),chk=fmtCheck(type,d,true);
- if(chk.e.length){toast('Please complete: '+chk.e.slice(0,4).join('; ')+(chk.e.length>4?' and '+(chk.e.length-4)+' more':''));return;}
+ var d=fmtRead(type),chk=fmtCheck(type,d,true),au=authRead();
+ if(chk.e.length){toast(chk.e.slice(0,3).join('; '));return;}
  if(chk.w.length&&!confirm(chk.w.join('\n')+'\n\nSubmit anyway? The editor may ask you to shorten it.'))return;
- if(!$('sf-ok').checked){toast('Please tick the declaration.');return;}
  var id=uid();$('sf-prog').textContent='Uploading files...';
  var up;try{up=await fmtUpload(id,type,[]);}catch(e){$('sf-prog').textContent='';toast('Upload failed: '+e.message);return;}
  var abstract=fmtComposeAbs(T,d.abs)||(d.conf?'':'');
- var s={id:id,authorId:u.id,authorName:u.name,authorEmail:u.email,title:g('sf-title'),type:type,branch:g('sf-branch'),authorsRaw:$('sf-auth').value.trim(),corr:g('sf-corr'),keywords:kw,abstract:abstract,note:g('sf-note'),status:'Submitted',date:today(),created:Date.now(),hasFile:!!up.main,fileName:up.main||'',
-  fmt:{v:1,type:type,abs:d.abs,secs:d.secs,decl:d.decl,x:d.x,conf:d.conf,pres:d.pres,refs:d.refs,files:up.files,mainName:up.main||''},history:[{d:today(),t:'Submitted by author'}]};
+ var s={id:id,authorId:u.id,authorName:u.name,authorEmail:u.email,title:g('sf-title')||'Untitled manuscript',type:type,branch:g('sf-branch'),authorsRaw:au.raw||u.name,corr:au.corr||(u.name+', '+u.email),keywords:kw,abstract:abstract,note:g('sf-note'),status:'Submitted',date:today(),created:Date.now(),hasFile:!!up.main,fileName:up.main||'',
+  fmt:{v:1,type:type,authors:au.list,abs:d.abs,secs:d.secs,decl:d.decl,x:d.x,conf:d.conf,pres:d.pres,refs:d.refs,files:up.files,mainName:up.main||''},history:[{d:today(),t:'Submitted by author'}]};
  try{await saveSub(s);}catch(e){$('sf-prog').textContent='';toast('Submission failed: '+e.message);return;}
  ensureRef(s);s.history.push({d:today(),t:'Acknowledgement issued ('+s.ref+')'});await saveSub(s);if(typeof mReceived==='function')mReceived(s);
  toast('Received - reference '+s.ref+'. Confirmation email prepared.');location.hash='#/sub/'+s.id;};
 
 /* --------------------------- submission view (author / editor) --------------------------- */
-function fmtView(s){var f=s.fmt;if(!f)return '';var T=fmtType(s.type),ed=isAdmin(),u=curUser(),canEdit=ed||(u&&u.id===s.authorId&&(s.status==='Submitted'||s.status==='Revision requested'));
+function fmtView(s){var f=s.fmt;if(!f){if(!isAdmin())return '';return '<div class="card fmtview" id="fmtview"><h3>Manuscript content</h3><p class="note" style="font-size:13px">This manuscript was submitted with the earlier form (abstract and file only). You can add the sections, declarations and files in the new structured format.</p><p><button class="btn gold" data-act="fmtedit" data-id="'+s.id+'">Add structured content</button></p></div>';}var T=fmtType(s.type),ed=isAdmin(),u=curUser(),canEdit=ed||(u&&u.id===s.authorId&&(s.status==='Submitted'||s.status==='Revision requested'));
  var h='<div class="card fmtview" id="fmtview"><h3>Manuscript as submitted <small style="font-weight:400;color:#667">('+esc(s.type)+')</small></h3>';
  if(f.conf&&f.conf.name)h+='<p><b>Conference:</b> '+esc(fmtConfText({kind:f.conf.kind,name:f.conf.name,venue:f.conf.venue,date:f.conf.date}))+(f.conf.presenter?' Presenting author: '+esc(f.conf.presenter)+'.':'')+'</p>';
  if(T.ab)h+='<h4>Abstract</h4><div class="body">'+fmt(fmtComposeAbs(T,f.abs||{})||s.abstract||'',{},{})+'</div>';
@@ -242,18 +250,18 @@ function fmtView(s){var f=s.fmt;if(!f)return '';var T=fmtType(s.type),ed=isAdmin
   +files.map(function(x){var u=UP[x.slot]||{l:x.slot};return '<tr><td>'+esc(u.l)+(x.caption?'<div class="hint">'+esc(x.caption)+'</div>':'')+'</td><td>'+esc(x.name)+'</td><td><button class="btn sm ghost" data-act="fmtfile" data-id="'+s.id+'" data-key="'+esc(x.key)+'">Download</button></td></tr>';}).join('')+(!s.hasFile&&!files.length?'<tr><td colspan="3">No files.</td></tr>':'')+'</table>';
  if(canEdit)h+='<p><button class="btn gold" data-act="fmtedit" data-id="'+s.id+'">'+(ed?'Edit submitted content':'Edit my submission')+'</button>'+(ed&&s.articleId?' <a class="btn ghost" href="#/admin/edit/'+s.articleId+'">Open article draft</a>':'')+'</p>';
  return h+'</div>';}
-if(typeof vSub==='function'){var _fmtVSub=vSub;vSub=function(id){var h=_fmtVSub(id),s=findSub(id);if(!s||!s.fmt||!canSee(s))return h;
+if(typeof vSub==='function'){var _fmtVSub=vSub;vSub=function(id){var h=_fmtVSub(id),s=findSub(id);if(!s||!canSee(s)||(!s.fmt&&!isAdmin()))return h;
  var i1=h.indexOf('<div class="card">'),i2=i1>-1?h.indexOf('<div class="card',i1+10):-1,v=fmtView(s);
  return i2>-1?h.slice(0,i2)+v+h.slice(i2):h+v;};}
 Object.assign(ACT,{
  fmtfile:async function(t){var s=findSub(t.dataset.id);var r=((s&&s.fmt&&s.fmt.files)||[]).filter(function(x){return x.key===t.dataset.key;})[0];var b=await DB.getFile(t.dataset.key);if(b)download(b,(r&&r.name)||'file');else toast('File not found.');},
- fmtedit:function(t){var s=findSub(t.dataset.id);if(!s)return;window.__fmtEditType=s.type;window.__fmtEditId=s.id;var f=s.fmt||{};
-  $('fmtview').innerHTML='<h3>Edit submitted content</h3>'+(isAdmin()?'<div class="row2"><div class="fg"><label>Article type</label><select id="fe-type">'+opt(SUB_TYPES,s.type)+'</select></div><div class="fg"><label>Title</label><input id="fe-title" value="'+esc(s.title)+'"></div></div><div class="fg"><label>Authors (Name | Affiliation | ORCID)</label><textarea id="fe-auth" rows="3">'+esc(s.authorsRaw)+'</textarea></div><div class="row2"><div class="fg"><label>Corresponding author</label><input id="fe-corr" value="'+esc(s.corr||'')+'"></div><div class="fg"><label>Keywords</label><input id="fe-kw" value="'+esc((s.keywords||[]).join(', '))+'"></div></div>':'')
+ fmtedit:function(t){var s=findSub(t.dataset.id);if(!s)return;window.__fmtEditType=s.type;window.__fmtEditId=s.id;var f=s.fmt||{abs:fmtSplitAbs(fmtType(s.type),s.abstract||''),secs:[],decl:{},mainName:s.fileName||''};
+  $('fmtview').innerHTML='<h3>Edit submitted content</h3>'+(isAdmin()?'<div class="row2"><div class="fg"><label>Article type</label><select id="fe-type">'+opt(SUB_TYPES,s.type)+'</select></div><div class="fg"><label>Title</label><input id="fe-title" value="'+esc(s.title)+'"></div></div>'+authBlock(authFromSub(s))+'<div class="fg"><label>Keywords</label><input id="fe-kw" value="'+esc((s.keywords||[]).join(', '))+'"></div>':'')
    +'<div id="fe-area">'+fmtForm(s.type,f,'edit')+'</div><p><button class="btn teal" data-act="fmtsave" data-id="'+s.id+'">Save changes</button> <button class="btn ghost" type="button" onclick="route()">Cancel</button></p>';fmtCounters();},
  fmtsave:async function(t){var s=findSub(t.dataset.id);if(!s)return;var type=$('fe-type')?$('fe-type').value:s.type,T=fmtType(type),d=fmtRead(window.__fmtEditType||s.type);
   var up;try{up=await fmtUpload(s.id,type,(s.fmt&&s.fmt.files)||[]);}catch(e){toast('Upload failed: '+e.message);return;}
   s.fmt=Object.assign({},s.fmt||{},{v:1,type:type,abs:d.abs,secs:d.secs,decl:d.decl,x:d.x,conf:d.conf,pres:d.pres,refs:d.refs,files:up.files});if(up.main){s.fmt.mainName=up.main;s.fileName=up.main;s.hasFile=true;}
-  s.abstract=fmtComposeAbs(T,d.abs)||s.abstract;if($('fe-type')){s.type=type;s.title=$('fe-title').value.trim()||s.title;s.authorsRaw=$('fe-auth').value.trim()||s.authorsRaw;s.corr=$('fe-corr').value.trim();s.keywords=$('fe-kw').value.split(/[,;]/).map(function(x){return x.trim();}).filter(Boolean);}
+  s.abstract=fmtComposeAbs(T,d.abs)||s.abstract;if($('fe-type')){s.type=type;s.title=$('fe-title').value.trim()||s.title;var au=authRead();if(au.list.length){s.authorsRaw=au.raw;s.corr=au.corr;s.fmt.authors=au.list;}s.keywords=$('fe-kw').value.split(/[,;]/).map(function(x){return x.trim();}).filter(Boolean);}
   s.history.push({d:today(),t:(isAdmin()?'Content edited by editorial office':'Submission content updated by author')});await saveSub(s);
   if(isAdmin()&&s.articleId){var a=findArt(s.articleId);if(a&&a.status!=='published'&&confirm('Also update the article draft with these changes?'))await fmtToArticle(s,a);}
   window.__fmtEditType='';toast('Saved.');route();}
@@ -299,6 +307,7 @@ if(typeof collect==='function'){var _fmtCol=collect;collect=function(st){var a=_
 +'.fsec{margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid #d6dde6;color:var(--navy,#0D2B4E)}.fsec small{font-weight:400}.wcc{color:#2b7a4b;font-size:12px}.wcc.over{color:#b42318;font-weight:700}'
 +'.fsecrow .hint,.upt .hint,.fmtview .hint{font-size:12px;color:#5b6b7c;margin:2px 0 4px;line-height:1.4}.upt td{vertical-align:top}.upt input[type=file]{max-width:100%}.rq{display:inline-block;font-size:11px;color:#fff;background:#b42318;border-radius:3px;padding:0 5px;margin-left:4px}'
 +'.ck{display:block;margin:8px 0;font-size:14px}.ck input{width:auto;margin-right:6px}.usetpl{font-weight:400;font-size:12px;margin-left:6px}.fref{font-size:13px;padding-left:22px}.figcaps .fg{margin:6px 0 0}'
++'.aucard{border:1px solid #d6dde6;border-radius:6px;padding:10px 12px 4px;margin:0 0 10px;background:#fbfcfd}.auhd{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px}.auhd b{color:var(--navy,#0D2B4E)}.aucorr{font-size:13px;margin:0;text-transform:none;letter-spacing:0}.aucorr input{width:auto;margin-right:4px}.aubtn{margin-left:auto;display:flex;gap:4px}.augrid{display:grid;grid-template-columns:repeat(3,1fr);gap:0 12px}.augrid .fg{margin-bottom:8px}.auhint{font-weight:400;text-transform:none;letter-spacing:0;color:#5b6b7c}@media(max-width:800px){.augrid{grid-template-columns:1fr}}'
 +'.gl-ph{border:2px dashed #b8c4d2;border-radius:6px;padding:14px;margin:10px 0;text-align:center;color:#6b7a8c;font-size:13px;background:#fafcfe}.gl-img{margin:10px 0;text-align:center}.gl-img img{max-width:100%;border:1px solid #dde3ea;border-radius:4px}.gl-img figcaption{font-size:12.5px;color:#5b6b7c;margin-top:4px}'
 +'.gltoc{columns:2;font-size:14px}.gl details{border:1px solid #dde3ea;border-radius:6px;margin:8px 0;background:#fff}.gl details>summary{cursor:pointer;padding:10px 14px;font-weight:700;color:var(--navy,#0D2B4E);font-size:15px}.gl details>div{padding:0 16px 14px}.gl ol.hd li{margin-bottom:4px}.gl .chk li{list-style:none;margin-left:-18px}.gl .chk li:before{content:"\\2610  ";}'
 +'.gl pre.decl{white-space:pre-wrap;background:#f6f8fa;border:1px solid #e3e8ee;border-radius:4px;padding:8px 10px;font-size:12.5px}@media(max-width:700px){.gltoc{columns:1}}';
