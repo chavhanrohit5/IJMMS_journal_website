@@ -7,7 +7,7 @@
    article record. Empty identifiers print as grey placeholders, never as
    invented values. Loaded after articles2.js, so it replaces printHTML.
    ========================================================================== */
-var PUB_TPL='pubstd-2026-11-21b';
+var PUB_TPL='pubstd-2026-11-21c';
 if(typeof DEFAULTS!=='undefined'){if(!('website' in DEFAULTS))DEFAULTS.website='';if(!('editorName' in DEFAULTS))DEFAULTS.editorName='';}
 
 function pubBrand(){return JID==='ls'
@@ -55,6 +55,7 @@ printHTML=function(a){
  var al=au.map(function(x){var sp=[];if(x.aff)sp.push(affs.indexOf(x.aff)+1);var s=esc(x.name)+(sp.length?'<sup>'+sp.join(',')+'</sup>':'');if(pubIsCorr(a,x.name))s+='<sup>*</sup>';return s;}).join(', ');
  var doiTxt=a.doi?'doi:'+a.doi:'doi: to be assigned';
  var foot=S.short+' | Vol. '+a.vol+', Issue '+a.issue+' | '+a.year+' | '+doiTxt;
+ var jline=S.name+' ('+S.short+') \u00b7 '+S.publisher+(S.address?' \u00b7 '+S.address:'')+(S.email?' \u00b7 '+S.email:'');
  var run=shortAuth(a)+' | '+(a.title.length>80?a.title.slice(0,77)+'...':a.title);
  var link=a.doi?'https://doi.org/'+a.doi:pubArtUrl(a);
  var cite=esc(vanc(a).replace(/\s*doi:\S+$/,''))+(a.doi?' doi:<a href="https://doi.org/'+esc(a.doi)+'">'+esc(a.doi)+'</a>':' <span class="ps-ph">doi: to be assigned</span>');
@@ -63,8 +64,8 @@ printHTML=function(a){
  '@page{size:A4 portrait;margin:15mm 12mm 15mm 12mm;',
  ' @top-left{content:'+pubCssStr(S.short+' | '+S.name)+';font:7pt '+SANS+';color:#777;vertical-align:bottom;padding-bottom:4mm}',
  ' @top-right{content:'+pubCssStr(run)+';font:7pt '+SANS+';color:#777;vertical-align:bottom;padding-bottom:4mm;text-align:right}',
- ' @bottom-left{content:'+pubCssStr(foot)+';font:7.2pt '+SANS+';color:#444;vertical-align:top;padding-top:4mm}',
- ' @bottom-right{content:"Page " counter(page) " of " counter(pages);font:7.2pt '+SANS+';color:#444;vertical-align:top;padding-top:4mm}}',
+ ' @bottom-left{content:'+pubCssStr(foot)+' "\\A" '+pubCssStr(jline)+';white-space:pre;font:7.2pt/1.45 '+SANS+';color:#444;vertical-align:top;padding-top:3.2mm;width:160mm}',
+ ' @bottom-right{content:"Page " counter(page) " of " counter(pages);font:7.2pt/1.45 '+SANS+';color:#444;vertical-align:top;padding-top:3.2mm;width:26mm}}',
  '@page :first{@top-left{content:none}@top-right{content:none}}',
  '*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}',
  'html,body{margin:0}body.pubstd{font:9.5pt/1.15 '+F+';color:#111}',
@@ -145,7 +146,7 @@ printHTML=function(a){
   +head+'<div class="fp">'+left+right+'</div><hr class="rule">'
   +'<div class="cols">'+bodyHtml(a)+'<div class="decl">'+pubDecl(a)+'</div></div>'
   +(refList(a).length?'<div class="refsblock">'+refsHtml(a)+'</div>':'')
-  +'<div class="endline">'+esc(S.name)+' ('+esc(S.short)+') &middot; '+esc(S.publisher)+(S.address?' &middot; '+esc(S.address):'')+(S.email?' &middot; '+esc(S.email):'')+'</div></body></html>';};
+  +'</body></html>';};
 
 /* ------------------------ CERTIFICATE OF PUBLICATION ------------------------ */
 function certNo(a,n){var id=String(a.artno||a.id||'').replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,12);return S.short+'/CERT/'+a.year+'/'+id+'-'+String(n+1).padStart(2,'0');}
