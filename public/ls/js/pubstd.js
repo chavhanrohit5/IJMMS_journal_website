@@ -7,8 +7,8 @@
    article record. Empty identifiers print as grey placeholders, never as
    invented values. Loaded after articles2.js, so it replaces printHTML.
    ========================================================================== */
-var PUB_TPL='pubstd-2026-11-21i';
-if(typeof DEFAULTS!=='undefined'){if(!('pdfTemplate' in DEFAULTS))DEFAULTS.pdfTemplate='standard';if(!('website' in DEFAULTS))DEFAULTS.website='';if(!('editorName' in DEFAULTS))DEFAULTS.editorName='';}
+var PUB_TPL='pubstd-2026-11-21k';
+if(typeof DEFAULTS!=='undefined'){if(!('pdfTemplate' in DEFAULTS))DEFAULTS.pdfTemplate='standard';if(!('pdfHeader' in DEFAULTS))DEFAULTS.pdfHeader='title';if(!('website' in DEFAULTS))DEFAULTS.website='';if(!('editorName' in DEFAULTS))DEFAULTS.editorName='';}
 
 function pubBrand(){return JID==='ls'
  ?{p:'#0A5A58',a:'#0E7C7B',g:'#B8860B',soft:'#EAF4F3',ink:'#0B3B3A'}
@@ -43,6 +43,8 @@ function pubQr(text,mm){
                (What is already known / What this study adds / Implications),
                plus the same statements (BMJ / Lancet practice)                 */
 var PUB_TEMPLATES=[['standard','Genosync standard'],['keypoints','Key Points (JAMA-style)'],['context','Research in context (BMJ / Lancet-style)']];
+var PUB_HEADERS=[['title','D. Logo + centred title (current)'],['masthead','A. Centred masthead (NEJM-style)'],['citation','B. Logo + citation block (BMJ / JAMA-style)'],['band','C. Colour band (journal-brand style)']];
+function pubHdr(){var h=window.__HDR||S.pdfHeader||'title';return /^(title|masthead|citation|band)$/.test(h)?h:'title';}
 function pubTpl(a){var t=a.tpl||S.pdfTemplate||'standard';return /^(standard|keypoints|context)$/.test(t)?t:'standard';}
 function pubOrcid(x){var o=String(x.orcid||'').replace(/^https?:\/\/orcid\.org\//i,'').trim();if(!/^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/i.test(o))return '';
  return ' <a class="orcid" href="https://orcid.org/'+o+'" title="ORCID '+o+'"><svg viewBox="0 0 24 24" width="9" height="9"><circle cx="12" cy="12" r="12" fill="#A6CE39"/><text x="12" y="16.5" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="11" fill="#fff">iD</text></svg></a>';}
@@ -109,6 +111,15 @@ printHTML=function(a){
  '.pubstd .pihead .nm{text-align:center;font:bold 12.5pt/1.15 '+F+';color:'+B.p+'}.pubstd .pihead .nm small{display:block;font:bold 8.5pt '+SANS+';letter-spacing:1.2pt;color:'+B.a+';margin-top:.8mm}',
  '.pubstd .pihead .nm{text-align:center;text-wrap:balance;font:bold 17pt/1.18 '+F+';color:'+B.p+';padding-right:2mm}.pubstd .pihead .nm small{display:block;font:bold 9pt '+SANS+';letter-spacing:2pt;color:'+B.a+';margin-top:1.2mm}',
  '.pubstd .idstrip{display:flex;justify-content:space-between;flex-wrap:wrap;gap:1mm 4mm;font:7.2pt/1.3 '+SANS+';color:#333;margin:0 0 3mm;padding-bottom:1.6mm;border-bottom:.5pt solid #ccc}.pubstd .idstrip b{color:'+B.p+'}.pubstd .pihead .ids b{color:'+B.p+';font-weight:bold}',
+ /* header options */
+ '.pubstd .h-mast{text-align:center}.pubstd .h-mast .lg img{height:19mm;width:auto;display:inline-block}.pubstd .h-mast .rules{border-top:1.6pt solid '+B.p+';border-bottom:.5pt solid '+B.p+';height:1.4mm;margin:2mm 0 1mm}',
+ '.pubstd .h-mast .mline{display:flex;justify-content:space-between;font:7.6pt '+SANS+';color:'+B.p+';letter-spacing:.3pt}',
+ '.pubstd .h-type{text-align:center;font:bold 9.5pt '+SANS+';letter-spacing:3pt;text-transform:uppercase;color:#9b1c1c;margin:3.5mm 0 1.5mm}',
+ '.pubstd .idstrip.c{justify-content:center;gap:1mm 6mm}',
+ '.pubstd .h-cite{display:flex;justify-content:space-between;align-items:flex-end;gap:6mm}.pubstd .h-cite .lg img{height:19mm;width:auto;display:block}',
+ '.pubstd .h-cite .cr{text-align:right;font:7.4pt/1.45 '+SANS+';color:#333}.pubstd .h-cite .ty{font:bold 11pt '+SANS+';letter-spacing:1.5pt;text-transform:uppercase;color:#9b1c1c;margin-bottom:1mm}.pubstd .h-cite .cl{font:bold 8.4pt '+SANS+';color:'+B.p+';margin-bottom:.6mm}.pubstd .h-cite .is b{color:'+B.p+'}',
+ '.pubstd .h-band{display:flex;align-items:center;gap:5mm;background:'+B.p+';padding:2.5mm 4mm;border-bottom:1.4mm solid '+B.g+';margin-bottom:1.8mm}.pubstd .h-band .plate{background:#fff;border-radius:1.5mm;padding:1.2mm 2.5mm}.pubstd .h-band .plate img{height:15mm;width:auto;display:block}',
+ '.pubstd .h-band .bn{flex:1;text-align:center;font:bold 16pt/1.15 '+F+';color:#fff;text-wrap:balance}.pubstd .h-band .bn small{display:block;font:bold 8pt '+SANS+';letter-spacing:1.6pt;color:#f1d58a;margin-top:1mm}',
  '.pubstd .divider{height:1.6mm;background:linear-gradient(90deg,'+B.p+' 0 72%,'+B.a+' 72% 90%,'+B.g+' 90%);margin:2mm 0 1.6mm}',
  '.pubstd .catline{display:flex;justify-content:space-between;font:8pt '+SANS+';margin-bottom:4mm}.pubstd .catline .cat{font-weight:bold;color:#9b1c1c;text-transform:uppercase;letter-spacing:.7pt}',
  /* first page 90 + 90 */
@@ -157,10 +168,18 @@ printHTML=function(a){
   +'</span><span><b>Web:</b> '+(pubHost()?'<a href="'+esc(pubSite())+'">'+esc(pubHost())+'</a>':pubPh('','www.example.com'))
   +'</span><span><b>Frequency:</b> '+pubPh(S.freq,'Quarterly / Biannual')
   +'</span><span><b>Volume '+esc(a.vol)+' / Issue '+esc(a.issue)+' / '+esc(a.year)+'</b></span>';
- var head='<div class="pihead"><div class="lg">'+(pubLogo()?'<img src="'+pubLogo()+'" alt="'+esc(S.name)+' ('+esc(S.short)+')">':'<div class="jt">'+esc(S.name)+' ('+esc(S.short)+')</div>')+'</div>'
+ var H=pubHdr(),logo=pubLogo()?'<img src="'+pubLogo()+'" alt="'+esc(S.name)+' ('+esc(S.short)+')">':'<div class="jt">'+esc(S.name)+' ('+esc(S.short)+')</div>';
+ var adoi=a.doi?'<a href="https://doi.org/'+esc(a.doi)+'">'+esc(a.doi)+'</a>':'<span class="ps-ph">to be assigned</span>';
+ var citeLine=esc(S.abbr)+'. '+esc(a.year)+';'+esc(a.vol)+'('+esc(a.issue)+')'+(a.pages?':'+esc(a.pages):'')+' &middot; doi: '+adoi;
+ var catline='<div class="catline"><span class="cat">'+esc(a.type||'Original Research')+'</span><span><b>Article DOI:</b> '+adoi+'</span></div>';
+ var head;
+ if(H==='masthead')head='<div class="h-mast"><div class="lg">'+logo+'</div><div class="rules"></div><div class="mline"><span>'+esc(S.short)+' &middot; Volume '+esc(a.vol)+', Issue '+esc(a.issue)+' &middot; '+esc(a.period||a.year)+'</span><span>'+(pubHost()?esc(pubHost()):pubPh('','www.example.com'))+'</span></div></div>'
+   +'<div class="h-type">'+esc(a.type||'Original Research')+'</div><div class="idstrip c">'+ids.replace(/<span><b>Volume[\s\S]*?<\/span>$/,'')+'<span><b>Article DOI:</b> '+adoi+'</span></div>';
+ else if(H==='citation')head='<div class="h-cite"><div class="lg">'+logo+'</div><div class="cr"><div class="ty">'+esc(a.type||'Original Research')+'</div><div class="cl">'+citeLine+'</div><div class="is"><b>P-ISSN</b> '+pubPh(S.issnP,'XXXX-XXXX')+' &nbsp; <b>E-ISSN</b> '+pubPh(S.issnO,'XXXX-XXXX')+' &nbsp; <b>Web</b> '+(pubHost()?'<a href="'+esc(pubSite())+'">'+esc(pubHost())+'</a>':pubPh('','www.example.com'))+'</div><div class="is"><b>DOI prefix</b> '+pubPh(S.doiPrefix&&!/x{3,}/i.test(S.doiPrefix)?S.doiPrefix:'','10.XXXXX')+' &nbsp; <b>Frequency</b> '+pubPh(S.freq,'Quarterly / Biannual')+'</div></div></div><div class="divider"></div><div style="height:2.5mm"></div>';
+ else if(H==='band')head='<div class="h-band"><div class="plate">'+logo+'</div><div class="bn">'+esc(S.name)+'<small>'+esc(S.short)+' &middot; '+(pubHost()?esc(pubHost()):'www.example.com')+'</small></div></div><div class="idstrip">'+ids+'</div>'+catline;
+ else head='<div class="pihead"><div class="lg">'+logo+'</div>'
   +'<div class="nm">'+esc(S.name)+'<small>'+esc(S.short)+'</small></div></div>'
-  +'<div class="divider"></div><div class="idstrip">'+ids+'</div>'
-  +'<div class="catline"><span class="cat">'+esc(a.type||'Original Research')+'</span><span><b>Article DOI:</b> '+(a.doi?'<a href="https://doi.org/'+esc(a.doi)+'">'+esc(a.doi)+'</a>':'<span class="ps-ph">to be assigned</span>')+'</span></div>';
+  +'<div class="divider"></div><div class="idstrip">'+ids+'</div>'+catline;
 
  var dates='<b>Received</b> '+pubPh(pubDate(a.received),'dd Month yyyy')+'<br><b>Revised</b> '+pubPh(pubDate(a.revised),'dd Month yyyy')
   +'<br><b>Accepted</b> '+pubPh(pubDate(a.accepted),'dd Month yyyy')+'<br><b>Published</b> '+pubPh(pubDate(a.published),'dd Month yyyy')
@@ -303,8 +322,8 @@ if(typeof vEditor==='function'){var _pubVE2=vEditor;vEditor=function(id){var h=_
 if(typeof collect==='function'){var _pubCol=collect;collect=function(st){var a=_pubCol(st);
  [['f-tpl','tpl'],['f-design','design'],['f-kq','keyQ'],['f-kf','keyF'],['f-km','keyM'],['f-known','known'],['f-adds','adds'],['f-impl','impl'],['f-guide','guide'],['f-ai','aiUse']].forEach(function(p){var e=$(p[0]);if(e)a[p[1]]=e.value.trim();});var e=$('f-revd');a.revised=e?e.value.trim():(a.revised||'');var c=$('f-accn');if(c)a.accession=c.value.trim();var old=a.id&&findArt(a.id);if(old&&old.certIssued)a.certIssued=old.certIssued;return a;};}
 /* settings: website printed on PDFs and certificates */
-if(typeof vSettings==='function'){var _pubVS=vSettings;vSettings=function(){var h=_pubVS();return h.replace('<button class="btn teal" data-act="savesettings">','<div class="row2"><div class="fg"><label>Website printed on PDFs and certificates (blank = this site\'s address)</label><input id="s-website" value="'+esc(S.website||'')+'" placeholder="https://'+esc(location.host)+'"></div><div class="fg"><label>Editor-in-Chief name (signs certificates)</label><input id="s-editorName" value="'+esc(S.editorName||'')+'"></div></div><div class="fg"><label>Article PDF layout (journal default)</label><select id="s-pdfTemplate">'+PUB_TEMPLATES.map(function(x){return '<option value="'+x[0]+'"'+((S.pdfTemplate||'standard')===x[0]?' selected':'')+'>'+x[1]+'</option>';}).join('')+'</select></div><button class="btn teal" data-act="savesettings">');};
- var _pubSave=ACT.savesettings;ACT.savesettings=function(t){var w=$('s-website'),e=$('s-editorName'),pt=$('s-pdfTemplate');if(pt)S.pdfTemplate=pt.value;if(w)S.website=w.value.trim();if(e&&e.value.trim())S.editorName=e.value.trim();return _pubSave(t);};}
+if(typeof vSettings==='function'){var _pubVS=vSettings;vSettings=function(){var h=_pubVS();return h.replace('<button class="btn teal" data-act="savesettings">','<div class="row2"><div class="fg"><label>Website printed on PDFs and certificates (blank = this site\'s address)</label><input id="s-website" value="'+esc(S.website||'')+'" placeholder="https://'+esc(location.host)+'"></div><div class="fg"><label>Editor-in-Chief name (signs certificates)</label><input id="s-editorName" value="'+esc(S.editorName||'')+'"></div></div><div class="fg"><label>Article PDF header style</label><select id="s-pdfHeader">'+PUB_HEADERS.map(function(x){return '<option value="'+x[0]+'"'+(pubHdr()===x[0]?' selected':'')+'>'+x[1]+'</option>';}).join('')+'</select></div><div class="fg"><label>Article PDF layout (journal default)</label><select id="s-pdfTemplate">'+PUB_TEMPLATES.map(function(x){return '<option value="'+x[0]+'"'+((S.pdfTemplate||'standard')===x[0]?' selected':'')+'>'+x[1]+'</option>';}).join('')+'</select></div><button class="btn teal" data-act="savesettings">');};
+ var _pubSave=ACT.savesettings;ACT.savesettings=function(t){var w=$('s-website'),e=$('s-editorName'),pt=$('s-pdfTemplate');if(pt)S.pdfTemplate=pt.value;var ph_=$('s-pdfHeader');if(ph_)S.pdfHeader=ph_.value;if(w)S.website=w.value.trim();if(e&&e.value.trim())S.editorName=e.value.trim();return _pubSave(t);};}
 /* static (browser-only) edition: the publication e-mail tells the author where the certificate is */
 if(typeof mPublished==='function'&&!window.IJMMS_SERVER){var _pubMP=mPublished;mPublished=function(s,art){_pubMP(s,art);var m=OUT[OUT.length-1];if(m&&/now published/.test(m.subject)){m.body=m.body.replace('Please share the article link','Your Certificate of Publication (one for each author) is attached as a printable page: open it from your dashboard and choose Save as PDF.\n\nPlease share the article link');m.att='cert';saveOut();}};}
 /* server edition: the server sends the publication e-mail with the certificates attached */

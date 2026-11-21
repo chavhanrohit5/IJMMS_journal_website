@@ -53,8 +53,8 @@ function publicSettings(S, staff) {
 /* ---------------- article persistence ---------------- */
 const HEAVY = ['sections', 'refs', 'figures', 'ack', 'funding', 'coi', 'ethics', 'data', 'contrib', 'consent', 'reg', 'supp', 'abv'];
 const lightArticle = (a) => { const o = { ...a, _light: true }; HEAVY.forEach((k) => { if (k === 'figures') o.figures = (a.figures || []).map((f) => ({ caption: f.caption || '', wide: !!f.wide })); else if (k === 'sections') o.sections = []; else o[k] = ''; }); o.nfig = (a.figures || []).length; return o; };
-const PUB_TPL = 'pubstd-2026-11-21i'; // bump when public/*/js/pubstd.js changes the printed layout
-const contentHash = (a, S) => U.sha1(JSON.stringify({ ...a, views: 0, downloads: 0, _light: undefined, T: PUB_TPL, S: [S.name, S.abbr, S.short, S.publisher, S.issnP, S.issnO, S.license, S.apcApproved, S.doiPrefix, S.freq, S.website, S.address, S.email, S.editorName, S.pdfTemplate] }));
+const PUB_TPL = 'pubstd-2026-11-21k'; // bump when public/*/js/pubstd.js changes the printed layout
+const contentHash = (a, S) => U.sha1(JSON.stringify({ ...a, views: 0, downloads: 0, _light: undefined, T: PUB_TPL, S: [S.name, S.abbr, S.short, S.publisher, S.issnP, S.issnO, S.license, S.apcApproved, S.doiPrefix, S.freq, S.website, S.address, S.email, S.editorName, S.pdfTemplate, S.pdfHeader] }));
 
 function saveFigures(a) {
   (a.figures || []).forEach((f, i) => {
