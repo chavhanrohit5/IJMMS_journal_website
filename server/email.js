@@ -17,6 +17,8 @@ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&':
 
 /* banner for each kind of message, chosen from the subject */
 const KINDS = [
+  [/copyright form received/i, '✍️', 'Copyright form received', '#0E7C7B'],
+  [/sign the copyright form/i, '✍️', 'Please sign the copyright form', '#B8860B'],
   [/payment received/i, '✅', 'Payment received – thank you', '#1e7d32'],
   [/payment reported/i, '💳', 'APC payment reported', '#0E7C7B'],
   [/apc payment (request|reminder)/i, '💳', 'APC payment', '#B8860B'],
@@ -38,7 +40,7 @@ const KINDS = [
   [/test email/i, '✅', 'Test e-mail', C.teal],
   [/reset your password/i, '🔑', 'Reset your password', C.navy],
 ];
-const HEAD_ICON = [[/APC|PAY|CHARGE/, '💳'], [/LOGIN/, '🔐'], [/JOURNEY|PROGRESS/, '🧭'], [/NEXT STEP/, '➡️'], [/EDITOR/, '📝'], [/REVIEWER COMMENT/, '💬'], [/RESUBMIT|HOW TO/, '🔁'], [/ACCEPT/, '🎉'], [/SUBMISSION|DETAILS/, '📄'], [/APC|CHARGE|PAYMENT/, '💳']];
+const HEAD_ICON = [[/COPYRIGHT|HOW TO SIGN/, '✍️'], [/APC|PAY|CHARGE/, '💳'], [/LOGIN/, '🔐'], [/JOURNEY|PROGRESS/, '🧭'], [/NEXT STEP/, '➡️'], [/EDITOR/, '📝'], [/REVIEWER COMMENT/, '💬'], [/RESUBMIT|HOW TO/, '🔁'], [/ACCEPT/, '🎉'], [/SUBMISSION|DETAILS/, '📄'], [/APC|CHARGE|PAYMENT/, '💳']];
 
 function inline(t) { // escape, then bold / links / reference numbers / quoted titles
   let h = esc(t);

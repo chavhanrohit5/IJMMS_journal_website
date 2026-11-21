@@ -442,6 +442,12 @@ app.put('/api/subs/:id', auth.requireAuth, wrap(async (req, res) => {
     else if (cur.authorId === u.id) {
       s = { ...cur }; AUTHOR_KEYS.forEach((k) => { if (inc[k] !== undefined) s[k] = inc[k]; });
       if (inc.status === 'Submitted') s.status = 'Submitted';
+      if (inc.cr && typeof inc.cr === 'object' && JSON.stringify(inc.cr) !== JSON.stringify(cur.cr || null)) { // copyright form: server stamps time and IP; only staff can verify
+        const c = inc.cr; const sig = String(c.sig || '');
+        if (c.method === 'digital' && !/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(sig)) return bad(res, 'Invalid signature image.');
+        if (sig.length > 400000) return bad(res, 'Signature image too large.');
+        s.cr = { method: c.method === 'digital' ? 'digital' : 'upload', status: 'Received', fileName: String(c.fileName || '').slice(0, 200), signer: String(c.signer || '').slice(0, 120), desig: String(c.desig || '').slice(0, 200), email: u.email, sig: c.method === 'digital' ? sig : '', at: new Date().toISOString(), ip: String(req.headers['cf-connecting-ip'] || req.ip || '').slice(0, 60) };
+      }
       if (inc.pay && typeof inc.pay === 'object') { // authors may only report a payment; staff confirm it
         const cp = cur.pay || {}; const st = cp.status === 'Paid' || cp.status === 'Waived' ? cp.status : 'Reported';
         s.pay = { ...cp, status: st, ref: String(inc.pay.ref || '').slice(0, 80), authorNote: String(inc.pay.authorNote || '').slice(0, 300), reportedAt: String(inc.pay.reportedAt || '').slice(0, 20), amount: cp.amount != null ? cp.amount : inc.pay.amount, cur: cp.cur || inc.pay.cur || 'INR' };
