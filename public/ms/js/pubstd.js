@@ -7,7 +7,7 @@
    article record. Empty identifiers print as grey placeholders, never as
    invented values. Loaded after articles2.js, so it replaces printHTML.
    ========================================================================== */
-var PUB_TPL='pubstd-2026-11-21';
+var PUB_TPL='pubstd-2026-11-21b';
 if(typeof DEFAULTS!=='undefined'){if(!('website' in DEFAULTS))DEFAULTS.website='';if(!('editorName' in DEFAULTS))DEFAULTS.editorName='';}
 
 function pubBrand(){return JID==='ls'
@@ -139,14 +139,12 @@ printHTML=function(a){
  var right='<div class="abs"><h2>Abstract</h2>'+(a.abstract?fmt(a.abstract,a,{}):'<p class="ps-ph">Structured abstract: Background, Methods, Results, Conclusions.</p>')
   +'<div class="kv"><b>Keywords:</b> '+kw+'</div><div class="kv"><b>Subject area:</b> '+pubPh(a.branch,S.scope||'subject area')+'</div>'
   +(a.highlights?hlHtml(a).replace('<h3>Key points</h3>','<h3>Editor&rsquo;s perspective / Highlights</h3>'):'')+'</div>';
- var apc=typeof apcStatement==='function'?apcStatement(a):'';
  return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>'+esc(a.title)+' | '+esc(S.short)+'</title><meta name="author" content="'+esc(au.map(function(x){return x.name;}).join('; '))+'"><meta name="subject" content="'+esc(S.name)+'"><style>'+css+'</style></head><body class="pubstd">'
   +'<div class="toolbar"><button onclick="window.print()">Print / Save as PDF</button><span>Chrome or Edge: Destination = Save as PDF, Paper = A4, Margins = Default, Background graphics = on.</span></div>'
   +(pubIsSample(a)?'<div class="wm">SAMPLE</div>':'')
   +head+'<div class="fp">'+left+right+'</div><hr class="rule">'
   +'<div class="cols">'+bodyHtml(a)+'<div class="decl">'+pubDecl(a)+'</div></div>'
   +(refList(a).length?'<div class="refsblock">'+refsHtml(a)+'</div>':'')
-  +(apc?'<div class="apcbox">'+apc+'</div>':'')
   +'<div class="endline">'+esc(S.name)+' ('+esc(S.short)+') &middot; '+esc(S.publisher)+(S.address?' &middot; '+esc(S.address):'')+(S.email?' &middot; '+esc(S.email):'')+'</div></body></html>';};
 
 /* ------------------------ CERTIFICATE OF PUBLICATION ------------------------ */
