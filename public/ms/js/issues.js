@@ -76,7 +76,7 @@ Object.assign(ACT,{
  isyear:function(){var L=isWork(),last=isSort(L)[0],y0=last?+last.y+1:new Date().getFullYear();
   var y=parseInt(prompt('Year to add',String(y0))||'',10);if(!(y>1900))return;if(L.some(function(x){return +x.y===y;})&&!confirm(y+' already has issues. Add more issues to it anyway?'))return;
   var vv=L.filter(function(x){return +x.y===y;})[0],v=parseInt(prompt('Volume number for '+y,String(vv?vv.v:volOf(y)))||'',10);if(!(v>0))return;
-  var f=prompt('How often?\n1 = bi-monthly (6 issues: Jan–Feb ... Nov–Dec)\n2 = 1st and 15th of every month (24 issues)\n3 = monthly (12 issues)\n4 = quarterly (4 issues)','2');if(!f)return;
+  var f=prompt('How often?\n1 = bi-monthly: 1st and 15th of every month (24 issues)\n2 = every two months (6 issues: Jan–Feb ... Nov–Dec)\n3 = monthly (12 issues)\n4 = quarterly (4 issues)','1');if(!f)return;f=f==='1'?'2':f==='2'?'1':f;
   var add=[],n0=isNextIn(L,y)-1;
   if(f==='2')for(var k=0;k<24;k++){var m=Math.floor(k/2),d=k%2?15:1;add.push({d:y+'-'+isPad(m+1)+'-'+isPad(d),p:d+' '+IS_MON[m]+' '+y});}
   else if(f==='3')for(var mm=0;mm<12;mm++)add.push({d:y+'-'+isPad(mm+1)+'-01',p:IS_MON[mm]+' '+y});

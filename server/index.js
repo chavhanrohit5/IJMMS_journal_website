@@ -723,8 +723,8 @@ async function ensureAdmin() {
   if (generated) { fs.writeFileSync(path.join(DATA, 'admin-initial-password.txt'), `Login: admin\nPassword: ${pw}\nChange it in Admin > Settings, then delete this file.\n`, { mode: 0o600 }); console.log(`[setup] Admin account created. Initial password saved in ${path.join(DATA, 'admin-initial-password.txt')}`); }
   else console.log('[setup] Admin account created with the ADMIN_PASSWORD from .env');
 }
-const LS_CFP = '2026-11-21 | Call for papers: Volume 1, Issues 3 and 4 (December 2026) | IJMLS publishes on the 1st and 15th of every month. It invites original research articles, review articles, systematic reviews and meta-analyses, short communications and letters to the editor across the life sciences for Volume 1, Issue 3 (1 December 2026), Issue 4 (15 December 2026) and Volume 2 (2027). Accepted manuscripts are published in the next available issue. Every manuscript undergoes double-blind peer review.';
-const MS_CFP = '2026-11-21 | Call for papers: Volume 1, Issues 3 and 4 (December 2026) | IJMMS publishes on the 1st and 15th of every month. It invites original research articles, review articles, systematic reviews and meta-analyses, case reports, short communications and letters to the editor across medical and surgical specialties for Volume 1, Issue 3 (1 December 2026), Issue 4 (15 December 2026) and Volume 2 (2027). Accepted manuscripts are published in the next available issue. Every manuscript undergoes double-blind peer review.';
+const LS_CFP = '2026-11-21 | Call for papers: Volume 1, Issues 3 and 4 (December 2026) | IJMLS is published bi-monthly, on the 1st and 15th of every month. It invites original research articles, review articles, systematic reviews and meta-analyses, short communications and letters to the editor across the life sciences for Volume 1, Issue 3 (1 December 2026), Issue 4 (15 December 2026) and Volume 2 (2027). Accepted manuscripts are published in the next available issue. Every manuscript undergoes double-blind peer review.';
+const MS_CFP = '2026-11-21 | Call for papers: Volume 1, Issues 3 and 4 (December 2026) | IJMMS is published bi-monthly, on the 1st and 15th of every month. It invites original research articles, review articles, systematic reviews and meta-analyses, case reports, short communications and letters to the editor across medical and surgical specialties for Volume 1, Issue 3 (1 December 2026), Issue 4 (15 December 2026) and Volume 2 (2027). Accepted manuscripts are published in the next available issue. Every manuscript undergoes double-blind peer review.';
 async function start() {
   await db.init();
   { // one-time content fix: drop 'submission is free' wording from saved texts
@@ -735,7 +735,8 @@ async function start() {
       let L = []; try { L = JSON.parse(st.issuesCfg); } catch (e) { L = []; }
       if (JOURNAL === 'ms' && Array.isArray(L) && L.length === 7 && L.some((x) => +x.y === 2026 && +x.n === 6 && +x.v === 10)) { st.issuesCfg = JSON.stringify(U.defaultIssues()); ch = true; }
     }
-    if (st.freq === 'Bi-monthly') { st.freq = 'Semi-monthly'; ch = true; }
+    if (st.freq === 'Semi-monthly') { st.freq = 'Bi-monthly'; ch = true; } // shown as 'Bi-monthly' (issues on the 1st and 15th)
+    if (typeof st.announcements === 'string' && st.announcements.includes('publishes on the 1st and 15th of every month.')) { st.announcements = st.announcements.split('publishes on the 1st and 15th of every month.').join('is published bi-monthly, on the 1st and 15th of every month.'); ch = true; }
     { // Editor-in-Chief shown as 'Dr. Rohit Chavhan' only
       const old = 'Dr. Rohit B. Chavhan, Pharm.D, MBA (Hospital & Health System Management)';
       if (st.editorName === old) { st.editorName = 'Dr. Rohit Chavhan'; ch = true; }
