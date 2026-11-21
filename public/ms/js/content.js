@@ -70,8 +70,10 @@ function latestIssue(){var c=issueCounts(),is=allIssues();for(var k=0;k<is.lengt
 
 /* ========== DOI ========== */
 function doiPrefix(){return String(S.doiPrefix||'10.xxxxx').trim();}
+function doiReady(){if(/^10\.x+$/i.test(doiPrefix()))return confirm('The DOI prefix in Settings is still the placeholder "'+doiPrefix()+'". DOIs made with it will not work until you enter your registered Crossref prefix.\n\nContinue anyway?');return true;}
+if(typeof DEFAULTS!=='undefined'&&!('doiAuto' in DEFAULTS))DEFAULTS.doiAuto=false;
 function doiTaken(doi,exceptId){doi=String(doi).toLowerCase();return ARTS.some(function(a){return a.id!==exceptId&&a.doi&&a.doi.toLowerCase()===doi;});}
-function doiAllocator(){var used={};ARTS.forEach(function(x){if(x.doi)used[x.doi.toLowerCase()]=1;});return function(a){var n=1,d;do{d=doiPrefix()+'/'+S.short.toLowerCase()+'.'+a.year+'.v'+a.vol+'i'+a.issue+'.'+String(n++).padStart(3,'0');}while(used[d.toLowerCase()]);used[d.toLowerCase()]=1;return d;};}
+function doiAllocator(){var used={};ARTS.forEach(function(x){if(x.doi)used[x.doi.toLowerCase()]=1;if(x.doiHold)used[x.doiHold.toLowerCase()]=1;});return function(a){var n=1,d;do{d=doiPrefix()+'/'+S.short.toLowerCase()+'.'+a.year+'.v'+a.vol+'i'+a.issue+'.'+String(n++).padStart(3,'0');}while(used[d.toLowerCase()]);used[d.toLowerCase()]=1;return d;};}
 function nextDoi(a){return doiAllocator()(a);}
 
 /* ========== CHROME ========== */
