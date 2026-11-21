@@ -7,7 +7,7 @@
    article record. Empty identifiers print as grey placeholders, never as
    invented values. Loaded after articles2.js, so it replaces printHTML.
    ========================================================================== */
-var PUB_TPL='pubstd-2026-11-21c';
+var PUB_TPL='pubstd-2026-11-21e';
 if(typeof DEFAULTS!=='undefined'){if(!('website' in DEFAULTS))DEFAULTS.website='';if(!('editorName' in DEFAULTS))DEFAULTS.editorName='';}
 
 function pubBrand(){return JID==='ls'
@@ -56,16 +56,16 @@ printHTML=function(a){
  var doiTxt=a.doi?'doi:'+a.doi:'doi: to be assigned';
  var foot=S.short+' | Vol. '+a.vol+', Issue '+a.issue+' | '+a.year+' | '+doiTxt;
  var jline=S.name+' ('+S.short+') \u00b7 '+S.publisher+(S.address?' \u00b7 '+S.address:'')+(S.email?' \u00b7 '+S.email:'');
- var run=shortAuth(a)+' | '+(a.title.length>80?a.title.slice(0,77)+'...':a.title);
+ var run=shortAuth(a)+' | '+(a.title.length>62?a.title.slice(0,59)+'...':a.title);
  var link=a.doi?'https://doi.org/'+a.doi:pubArtUrl(a);
  var cite=esc(vanc(a).replace(/\s*doi:\S+$/,''))+(a.doi?' doi:<a href="https://doi.org/'+esc(a.doi)+'">'+esc(a.doi)+'</a>':' <span class="ps-ph">doi: to be assigned</span>');
  var F='"Times New Roman","Liberation Serif",Tinos,Georgia,serif',SANS='Arial,"Liberation Sans",Helvetica,sans-serif';
  var css=[
  '@page{size:A4 portrait;margin:15mm 12mm 15mm 12mm;',
- ' @top-left{content:'+pubCssStr(S.short+' | '+S.name)+';font:7pt '+SANS+';color:#777;vertical-align:bottom;padding-bottom:4mm}',
- ' @top-right{content:'+pubCssStr(run)+';font:7pt '+SANS+';color:#777;vertical-align:bottom;padding-bottom:4mm;text-align:right}',
- ' @bottom-left{content:'+pubCssStr(foot)+' "\\A" '+pubCssStr(jline)+';white-space:pre;font:7.2pt/1.45 '+SANS+';color:#444;vertical-align:top;padding-top:3.2mm;width:160mm}',
- ' @bottom-right{content:"Page " counter(page) " of " counter(pages);font:7.2pt/1.45 '+SANS+';color:#444;vertical-align:top;padding-top:3.2mm;width:26mm}}',
+ ' @top-left{content:'+pubCssStr(S.short+' | '+S.name)+';font:7pt '+SANS+';color:#777;vertical-align:bottom;padding-bottom:1.6mm;margin-bottom:2.4mm;width:93mm;border-bottom:.7pt solid '+B.p+'}',
+ ' @top-right{content:'+pubCssStr(run)+';font:7pt '+SANS+';color:#777;vertical-align:bottom;padding-bottom:1.6mm;margin-bottom:2.4mm;margin-left:-4mm;text-align:right;width:97mm;border-bottom:.7pt solid '+B.p+'}',
+ ' @bottom-left{content:'+pubCssStr(foot)+' "\\A" '+pubCssStr(jline)+';white-space:pre;font:7.2pt/1.45 '+SANS+';color:#444;vertical-align:top;padding-top:1.4mm;margin-top:2.4mm;width:160mm;border-top:.7pt solid '+B.p+'}',
+ ' @bottom-right{content:"Page " counter(page) " of " counter(pages);font:7.2pt/1.45 '+SANS+';color:#444;vertical-align:top;padding-top:1.4mm;margin-top:2.4mm;margin-left:-4mm;width:30mm;border-top:.7pt solid '+B.p+';text-align:right}}',
  '@page :first{@top-left{content:none}@top-right{content:none}}',
  '*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}',
  'html,body{margin:0}body.pubstd{font:9.5pt/1.15 '+F+';color:#111}',
