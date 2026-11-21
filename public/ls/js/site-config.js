@@ -5,14 +5,14 @@
   if(typeof JID==='undefined'||JID!=='ls')return;
   START_YEAR=2026; /* Volume 1 = 2026 (from 1 November), issues on the 1st and 15th of every month */
   var EMAIL='editor@ijmls.in';
-  var EIC='Dr. Rohit B. Chavhan, Pharm.D, MBA (Hospital & Health System Management)';
+  var EIC='Dr. Rohit Chavhan';
   var how=window.IJMMS_SERVER?'Submit through this website (Submit Manuscript) or by email to '+EMAIL+'.':'Submit by email to '+EMAIL+'.';
   var o={
     email:EMAIL,
     editorName:EIC,
     editorTitle:'Editor-in-Chief',
     freq:'Semi-monthly',
-    board:'Editor-in-Chief | '+EIC+' | Assistant Professor, Department of Pharmacology and Toxicology, YIOP, Chhatrapati Sambhajinagar | India',
+    board:'Editor-in-Chief | '+EIC+' | International Journal of Modern Life Sciences (IJMLS) | India',
     nmc:'',
     isoOn:'1',
     isoText:'Published by Genosync Publications, an ISO 9001:2015 certified organisation',

@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const express = require('express');
 
 const U = require('./util');
+const { emailHtml } = require('./email');
 const ROOT = path.join(__dirname, '..');
 U.loadEnv(path.resolve(ROOT, process.env.ENV_FILE || '.env'));
 
@@ -124,7 +125,7 @@ async function publicationMail(a) {
     + `Certificates of Publication for ${au.length > 1 ? 'all ' + au.length + ' authors are' : 'the author is'} attached to this e-mail (one PDF per author). `
     + `Please forward them to your co-authors. Each certificate can be verified online using the QR code printed on it, and can be downloaded again at any time from your submission page.\n\n`
     + `Please share the article link with your colleagues. Thank you for publishing with ${S.short}.\n\n`
-    + `With regards,\n${S.editorName ? S.editorName + '\n' : ''}${S.editorTitle || 'Editorial Office'}\n${S.name} (${S.short})\n${S.publisher}${S.address ? ', ' + S.address : ''}\n${S.email}\n`;
+    + `With regards,\n${S.editorName ? S.editorName + '\n' : ''}${S.editorTitle || 'Editor-in-Chief'}, ${S.short}\n${S.name} (${S.short})\n${S.publisher}${S.address ? ', ' + S.address : ''}\n${S.email}\n`;
   const rec = { id: U.uid(), to: to.toLowerCase(), toName, subject: `${ref ? '[' + ref + '] ' : ''}Your article is now published - Certificate of Publication`, body, att: 'cert', subId: a.subId || '', artId: a.id, date: new Date().toISOString(), sent: false, auto: false, status: mailer.configured ? 'sending' : 'queued' };
   await db.q('INSERT INTO outbox(id,data) VALUES ($1,$2) ON CONFLICT (id) DO NOTHING', [rec.id, JSON.stringify(rec)]);
   if (mailer.configured) await deliver(rec.id);
@@ -198,7 +199,8 @@ async function deliver(id) {
   if (!mailer.configured) { m.status = 'queued'; await db.q('UPDATE outbox SET data=$2 WHERE id=$1', [id, JSON.stringify(m)]); return m; }
   try {
     const attachments = await attachmentsFor(m);
-    await mailer.send({ to: m.to, toName: m.toName, subject: m.subject, body: m.body, from: `"${S.short} Editorial Office" <${S.email}>`, replyTo: S.email, attachments });
+    let html = ''; try { html = emailHtml(m, S, SITE); } catch (e) { console.warn('[mail] html:', e.message); }
+    await mailer.send({ to: m.to, toName: m.toName, subject: m.subject, body: m.body, html, from: `"${S.short} Editorial Office" <${S.email}>`, replyTo: S.email, attachments });
     m.sent = true; m.auto = true; m.status = 'sent'; m.error = ''; m.attached = attachments.length > 0;
   } catch (e) { m.status = 'failed'; m.error = String(e.message || e).slice(0, 300); }
   await db.q('UPDATE outbox SET data=$2 WHERE id=$1', [id, JSON.stringify(m)]);
@@ -549,6 +551,11 @@ app.post('/api/outbox/:id/send', auth.requireStaff, wrap(async (req, res) => {
   if (!m) return bad(res, 'Not found.', 404);
   res.json({ ok: m.sent, mail: m });
 }));
+app.get('/api/outbox/:id/preview', auth.requireStaff, wrap(async (req, res) => {
+  const r = await db.q('SELECT data FROM outbox WHERE id=$1', [req.params.id]);
+  if (!r.rows[0]) return res.status(404).send('Not found');
+  res.setHeader('Cache-Control', 'no-store'); res.type('html').send(emailHtml(r.rows[0].data, await getSettings(), `${req.protocol}://${req.get('host')}`));
+}));
 app.post('/api/outbox/:id/mark', auth.requireStaff, wrap(async (req, res) => {
   const r = await db.q("UPDATE outbox SET data = jsonb_set(jsonb_set(data,'{sent}','true'),'{status}','\"sent\"') WHERE id=$1", [req.params.id]);
   res.json({ ok: r.rowCount });
@@ -556,7 +563,7 @@ app.post('/api/outbox/:id/mark', auth.requireStaff, wrap(async (req, res) => {
 app.delete('/api/outbox/:id', auth.requireStaff, wrap(async (req, res) => { await db.q('DELETE FROM outbox WHERE id=$1', [req.params.id]); res.json({ ok: 1 }); }));
 app.post('/api/mail-test', auth.requireAdmin, wrap(async (req, res) => {
   const S = await getSettings();
-  try { await mailer.send({ to: S.email, subject: S.short + ' test email', body: 'This is a test email from the journal server.', from: `"${S.short}" <${S.email}>` }); res.json({ ok: 1 }); }
+  try { await mailer.send({ to: S.email, subject: S.short + ' test email', body: 'This is a test email from the journal server.\n\nIf you can read this, outgoing e-mail is working.\n\nWith regards,', html: emailHtml({ subject: S.short + ' test email', body: 'This is a test email from the journal server.\n\nIf you can read this, outgoing e-mail is working.\n\nWith regards,' }, S, SITE), from: `"${S.short}" <${S.email}>` }); res.json({ ok: 1 }); }
   catch (e) { bad(res, e.message, 400); }
 }));
 
@@ -717,16 +724,25 @@ async function ensureAdmin() {
   else console.log('[setup] Admin account created with the ADMIN_PASSWORD from .env');
 }
 const LS_CFP = '2026-11-21 | Call for papers: Volume 1, Issues 3 and 4 (December 2026) | IJMLS publishes on the 1st and 15th of every month. It invites original research articles, review articles, systematic reviews and meta-analyses, short communications and letters to the editor across the life sciences for Volume 1, Issue 3 (1 December 2026), Issue 4 (15 December 2026) and Volume 2 (2027). Accepted manuscripts are published in the next available issue. Every manuscript undergoes double-blind peer review.';
+const MS_CFP = '2026-11-21 | Call for papers: Volume 1, Issues 3 and 4 (December 2026) | IJMMS publishes on the 1st and 15th of every month. It invites original research articles, review articles, systematic reviews and meta-analyses, case reports, short communications and letters to the editor across medical and surgical specialties for Volume 1, Issue 3 (1 December 2026), Issue 4 (15 December 2026) and Volume 2 (2027). Accepted manuscripts are published in the next available issue. Every manuscript undergoes double-blind peer review.';
 async function start() {
   await db.init();
   { // one-time content fix: drop 'submission is free' wording from saved texts
     const st = await db.kvGet('settings', {}); let ch = false;
     Object.keys(st).forEach((k) => { if (typeof st[k] !== 'string' || !/ubmission is free/.test(st[k])) return; st[k] = st[k].replace(/Submission is free and every manuscript undergoes/g, 'Every manuscript undergoes').replace(/(Manuscript )?[Ss]ubmission is free( of charge)?[.;]? ?/g, ''); ch = true; });
-    if (!st.issuesCfg) { st.issuesCfg = JSON.stringify(U.defaultIssues(JOURNAL)); ch = true; }
-    if (JOURNAL === 'ls') {
-      if (st.freq === 'Bi-monthly') { st.freq = 'Semi-monthly'; ch = true; }
-      if (typeof st.announcements === 'string' && st.announcements.includes('Volume 1, Issue 1 (January-February 2027)')) { st.announcements = st.announcements.split('\n').filter((l) => !l.includes('Volume 1, Issue 1 (January-February 2027)')).concat([LS_CFP]).join('\n').trim(); ch = true; }
+    if (!st.issuesCfg) { st.issuesCfg = JSON.stringify(U.defaultIssues()); ch = true; }
+    { // IJMMS moved to the same scheme as IJMLS (Volume 1 from 1 Nov 2026): replace the earlier bi-monthly default list
+      let L = []; try { L = JSON.parse(st.issuesCfg); } catch (e) { L = []; }
+      if (JOURNAL === 'ms' && Array.isArray(L) && L.length === 7 && L.some((x) => +x.y === 2026 && +x.n === 6 && +x.v === 10)) { st.issuesCfg = JSON.stringify(U.defaultIssues()); ch = true; }
     }
+    if (st.freq === 'Bi-monthly') { st.freq = 'Semi-monthly'; ch = true; }
+    { // Editor-in-Chief shown as 'Dr. Rohit Chavhan' only
+      const old = 'Dr. Rohit B. Chavhan, Pharm.D, MBA (Hospital & Health System Management)';
+      if (st.editorName === old) { st.editorName = 'Dr. Rohit Chavhan'; ch = true; }
+      if (typeof st.board === 'string' && st.board.includes(old)) { st.board = st.board.split('\n').map((l) => (l.includes(old) && /^Editor-in-Chief/.test(l) ? DEFAULTS.board.split('\n')[0] : l)).join('\n'); ch = true; }
+    }
+    const oldCfp = JOURNAL === 'ls' ? 'Volume 1, Issue 1 (January-February 2027)' : 'Volume 11, Issue 1 (January-February 2027)';
+    if (typeof st.announcements === 'string' && st.announcements.includes(oldCfp)) { st.announcements = st.announcements.split('\n').filter((l) => !l.includes(oldCfp)).concat([JOURNAL === 'ls' ? LS_CFP : MS_CFP]).join('\n').trim(); ch = true; }
     if (ch) await db.kvSet('settings', st);
   }
   await ensureAdmin();

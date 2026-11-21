@@ -10,10 +10,9 @@ if(typeof DEFAULTS!=='undefined'&&!('issuesCfg' in DEFAULTS))DEFAULTS.issuesCfg=
 var IS_MON=['January','February','March','April','May','June','July','August','September','October','November','December'];
 var IS_BIM=['Jan–Feb','Mar–Apr','May–Jun','Jul–Aug','Sep–Oct','Nov–Dec'];
 function isPad(n){return String(n).padStart(2,'0');}
-function isDefault(){var L=[],j=(typeof JID!=='undefined'&&JID==='ls')?'ls':'ms';
- if(j==='ls'){[[1,10,1],[2,10,15],[3,11,1],[4,11,15]].forEach(function(x,i){L.push({y:2026,n:x[0],v:1,d:'2026-'+isPad(x[1]+1)+'-'+isPad(x[2]),p:x[2]+' '+IS_MON[x[1]]+' 2026',vis:i<2?1:0,sp:''});});
-  for(var k=0;k<24;k++){var m=Math.floor(k/2),d=k%2?15:1;L.push({y:2027,n:k+1,v:2,d:'2027-'+isPad(m+1)+'-'+isPad(d),p:d+' '+IS_MON[m]+' 2027',vis:0,sp:''});}}
- else{L.push({y:2026,n:6,v:10,d:'2026-11-01',p:'Nov–Dec 2026',vis:1,sp:''});for(var n=1;n<=6;n++)L.push({y:2027,n:n,v:11,d:'2027-'+isPad(2*n-1)+'-01',p:IS_BIM[n-1]+' 2027',vis:0,sp:''});}
+function isDefault(){var L=[];/* both journals: Volume 1 = 2026 (from 1 Nov), then the 1st and 15th of every month */
+ [[1,10,1],[2,10,15],[3,11,1],[4,11,15]].forEach(function(x,i){L.push({y:2026,n:x[0],v:1,d:'2026-'+isPad(x[1]+1)+'-'+isPad(x[2]),p:x[2]+' '+IS_MON[x[1]]+' 2026',vis:i<2?1:0,sp:''});});
+ for(var k=0;k<24;k++){var m=Math.floor(k/2),d=k%2?15:1;L.push({y:2027,n:k+1,v:2,d:'2027-'+isPad(m+1)+'-'+isPad(d),p:d+' '+IS_MON[m]+' 2027',vis:0,sp:''});}
  return L;}
 var _isRaw=null,_isList=[];
 function isList(){var raw=(typeof S!=='undefined'&&S.issuesCfg)||'';if(raw!==_isRaw){_isRaw=raw;var L=null;try{L=raw?JSON.parse(raw):null;}catch(e){L=null;}_isList=Array.isArray(L)?L:isDefault();}return _isList;}
@@ -77,7 +76,7 @@ Object.assign(ACT,{
  isyear:function(){var L=isWork(),last=isSort(L)[0],y0=last?+last.y+1:new Date().getFullYear();
   var y=parseInt(prompt('Year to add',String(y0))||'',10);if(!(y>1900))return;if(L.some(function(x){return +x.y===y;})&&!confirm(y+' already has issues. Add more issues to it anyway?'))return;
   var vv=L.filter(function(x){return +x.y===y;})[0],v=parseInt(prompt('Volume number for '+y,String(vv?vv.v:volOf(y)))||'',10);if(!(v>0))return;
-  var f=prompt('How often?\n1 = bi-monthly (6 issues: Jan–Feb ... Nov–Dec)\n2 = 1st and 15th of every month (24 issues)\n3 = monthly (12 issues)\n4 = quarterly (4 issues)',(typeof JID!=='undefined'&&JID==='ls')?'2':'1');if(!f)return;
+  var f=prompt('How often?\n1 = bi-monthly (6 issues: Jan–Feb ... Nov–Dec)\n2 = 1st and 15th of every month (24 issues)\n3 = monthly (12 issues)\n4 = quarterly (4 issues)','2');if(!f)return;
   var add=[],n0=isNextIn(L,y)-1;
   if(f==='2')for(var k=0;k<24;k++){var m=Math.floor(k/2),d=k%2?15:1;add.push({d:y+'-'+isPad(m+1)+'-'+isPad(d),p:d+' '+IS_MON[m]+' '+y});}
   else if(f==='3')for(var mm=0;mm<12;mm++)add.push({d:y+'-'+isPad(mm+1)+'-01',p:IS_MON[mm]+' '+y});

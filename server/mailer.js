@@ -12,7 +12,7 @@ module.exports = function createMailer(env) {
   }) : null;
   const clean = (s) => String(s || '').replace(/[\r\n]+/g, ' ').trim();
 
-  async function send({ to, toName, subject, body, from, replyTo, attachments }) {
+  async function send({ to, toName, subject, body, html, from, replyTo, attachments }) {
     if (!configured) throw new Error('SMTP is not configured (set SMTP_HOST in .env).');
     const f = env.MAIL_FROM || from;
     await transport.sendMail({
@@ -21,6 +21,7 @@ module.exports = function createMailer(env) {
       replyTo: replyTo || undefined,
       subject: clean(subject),
       text: String(body || ''),
+      ...(html ? { html } : {}),
       attachments: attachments || [],
     });
   }

@@ -271,13 +271,16 @@ function certPage(a,n){
   +'<div class="ttl" style="font-size:'+ts+'pt">&ldquo;'+esc(t)+'&rdquo;</div>'
   +(others.length?'<p class="co"><b>Co-authors:</b> '+others.join(', ')+'</p>':'')
   +'<p class="txt">'+where+'</p>'
-  +'<div class="row"><div class="sig"><div class="line"></div><b>'+pubPh(S.editorName,'Editor-in-Chief name')+'</b><span>Editor-in-Chief, '+esc(S.short)+'</span></div>'
+  +'<div class="row"><div class="sig">'+signImg(13,1)+'<div class="line"></div><b>'+pubPh(S.editorName,'Editor-in-Chief name')+'</b><span>'+esc(eicLine())+'</span></div>'
   +'<div class="sealw">'+certSeal(B,pubd)+'</div>'
   +'<div class="ver">'+pubQr(vurl,22)+'<div><b>Certificate No.</b><br>'+esc(no)+'<br><b>Date of publication</b><br>'+esc(pubd)+'<br><b>Verify</b><br><a class="u" href="'+esc(vurl)+'">'+esc(vurl.replace(/^https?:\/\//,''))+'</a></div></div></div>'
   +'</div>'
   +'<div class="foot">'+esc(S.publisher)+(S.address?' &middot; '+esc(S.address):'')+(S.email?' &middot; '+esc(S.email):'')+(issn.length?' &middot; '+esc(issn.join(' / ')):'')
   +'<br><span class="cite">'+esc(vanc(a))+'</span></div>'
   +'</section>';}
+/* Editor-in-Chief signature image (assets/signature.png) for letters and certificates */
+function signImg(mm,center){var o=(typeof location!=='undefined'&&/^https?:/.test(location.origin))?location.origin:'';return '<img class="esign" src="'+o+'/assets/signature.png" alt="Signature" style="height:'+(mm||14)+'mm;width:auto;display:block;'+(center?'margin:0 auto -1.5mm':'margin:0 0 -1.5mm')+'">';}
+function eicLine(){return (S.editorTitle||'Editor-in-Chief')+', '+S.short;}
 function certHTML(a,only){
  var B=pubBrand(),au=parseAuthors(a.authorsRaw),SANS='Arial,"Liberation Sans",Helvetica,sans-serif',F='Georgia,"Times New Roman","Liberation Serif",serif';
  var pages=(only!=null&&only>=0?[only]:au.map(function(x,i){return i;})).map(function(i){return certPage(a,i);}).join('');
