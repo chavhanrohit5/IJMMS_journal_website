@@ -7,8 +7,8 @@
    article record. Empty identifiers print as grey placeholders, never as
    invented values. Loaded after articles2.js, so it replaces printHTML.
    ========================================================================== */
-var PUB_TPL='pubstd-2026-11-21m';
-if(typeof DEFAULTS!=='undefined'){if(!('pdfTemplate' in DEFAULTS))DEFAULTS.pdfTemplate='standard';if(!('pdfHeader' in DEFAULTS))DEFAULTS.pdfHeader='citation';if(!('website' in DEFAULTS))DEFAULTS.website='';if(!('editorName' in DEFAULTS))DEFAULTS.editorName='';}
+var PUB_TPL='pubstd-2026-11-21n';
+if(typeof DEFAULTS!=='undefined'){if(!('pdfTemplate' in DEFAULTS))DEFAULTS.pdfTemplate='context';if(!('pdfHeader' in DEFAULTS))DEFAULTS.pdfHeader='citation';if(!('website' in DEFAULTS))DEFAULTS.website='';if(!('editorName' in DEFAULTS))DEFAULTS.editorName='';}
 
 function pubBrand(){return JID==='ls'
  ?{p:'#0A5A58',a:'#0E7C7B',g:'#B8860B',soft:'#EAF4F3',ink:'#0B3B3A'}
@@ -46,7 +46,7 @@ var PUB_TEMPLATES=[['standard','Genosync standard'],['keypoints','Key Points (JA
 function pubAsset(n){var base=(window.IJMMS_ASSETS!=null&&!window.__RD)?window.IJMMS_ASSETS:'/';try{return new URL(base+'assets/'+n,location.href).href;}catch(e){return '/assets/'+n;}}
 var PUB_HEADERS=[['title','D. Logo + centred title (current)'],['masthead','A. Centred masthead (NEJM-style)'],['citation','B. Logo, journal name and citation block (BMJ / JAMA-style)'],['band','C. Colour band (journal-brand style)']];
 function pubHdr(){var h=window.__HDR||S.pdfHeader||'citation';return /^(title|masthead|citation|band)$/.test(h)?h:'citation';}
-function pubTpl(a){var t=a.tpl||S.pdfTemplate||'standard';return /^(standard|keypoints|context)$/.test(t)?t:'standard';}
+function pubTpl(a){var t=a.tpl||S.pdfTemplate||'context';return /^(standard|keypoints|context)$/.test(t)?t:'context';}
 function pubOrcid(x){var o=String(x.orcid||'').replace(/^https?:\/\/orcid\.org\//i,'').trim();if(!/^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/i.test(o))return '';
  return ' <a class="orcid" href="https://orcid.org/'+o+'" title="ORCID '+o+'"><svg viewBox="0 0 24 24" width="9" height="9"><circle cx="12" cy="12" r="12" fill="#A6CE39"/><text x="12" y="16.5" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="11" fill="#fff">iD</text></svg></a>';}
 function pubDeclPlus(a){var ls=JID==='ls',trial=/random|trial/i.test(String(a.type||'')+' '+String(a.design||''));
@@ -95,7 +95,7 @@ printHTML=function(a){
  '@page{size:A4 portrait;margin:15mm 12mm 15mm 12mm;',
  ' @top-left{content:'+pubCssStr(S.short+' | '+S.name)+';font:7pt '+SANS+';color:#777;vertical-align:bottom;padding-bottom:1.6mm;margin-bottom:2.4mm;width:93mm;border-bottom:.7pt solid '+B.p+'}',
  ' @top-right{content:'+pubCssStr(run)+';font:7pt '+SANS+';color:#777;vertical-align:bottom;padding-bottom:1.6mm;margin-bottom:2.4mm;margin-left:-4mm;text-align:right;width:97mm;border-bottom:.7pt solid '+B.p+'}',
- ' @bottom-left{content:'+pubCssStr(foot)+' "\\A" '+pubCssStr(jline)+';white-space:pre;font:7.2pt/1.45 '+SANS+';color:#444;vertical-align:top;padding-top:1.4mm;margin-top:2.4mm;width:160mm;border-top:.7pt solid '+B.p+'}',
+ ' @bottom-left{content:'+pubCssStr(foot)+';white-space:pre;font:7.2pt/1.45 '+SANS+';color:#444;vertical-align:top;padding-top:1.4mm;margin-top:2.4mm;width:160mm;border-top:.7pt solid '+B.p+'}',
  ' @bottom-right{content:"Page " counter(page) " of " counter(pages);font:7.2pt/1.45 '+SANS+';color:#444;vertical-align:top;padding-top:1.4mm;margin-top:2.4mm;margin-left:-4mm;width:30mm;border-top:.7pt solid '+B.p+';text-align:right}}',
  '@page :first{@top-left{content:none}@top-right{content:none}}',
  '*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}',
@@ -117,9 +117,9 @@ printHTML=function(a){
  '.pubstd .h-mast .mline{display:flex;justify-content:space-between;font:7.6pt '+SANS+';color:'+B.p+';letter-spacing:.3pt}',
  '.pubstd .h-type{text-align:center;font:bold 9.5pt '+SANS+';letter-spacing:3pt;text-transform:uppercase;color:#9b1c1c;margin:3.5mm 0 1.5mm}',
  '.pubstd .idstrip.c{justify-content:center;gap:1mm 6mm}',
- '.pubstd .h-cite{display:grid;grid-template-columns:23mm 1fr auto;align-items:center;column-gap:5mm}.pubstd .h-cite .lg img.circ{width:23mm;height:23mm;display:block}',
- '.pubstd .h-cite .nmw{text-align:center}.pubstd .h-cite .nmw img{height:15.5mm;width:auto;max-width:100%;display:inline-block}',
- '.pubstd .h-cite .wtxt{display:inline-block;text-align:center;font:bold 15pt/1.12 '+F+'}.pubstd .h-cite .wtxt span{display:block;color:'+B.ink+'}.pubstd .h-cite .wtxt span+span{color:'+B.a+';font-size:17pt}.pubstd .h-cite .wtxt i{display:flex;align-items:center;gap:1.2mm;margin:1.4mm auto 0;width:100%}.pubstd .h-cite .wtxt i:before,.pubstd .h-cite .wtxt i:after{content:"";flex:1;height:.45mm;background:'+B.ink+'}.pubstd .h-cite .wtxt i b{display:block;width:22mm;height:1.3mm;background:'+B.a+';transform:skewX(-35deg)}',
+ '.pubstd .h-cite{display:grid;grid-template-columns:27mm 1fr auto;align-items:center;column-gap:5mm}.pubstd .h-cite .lg img.circ{width:27mm;height:27mm;display:block}',
+ '.pubstd .h-cite .nmw{text-align:center}.pubstd .h-cite .nmw{display:flex;align-items:center;justify-content:center;height:27mm}.pubstd .h-cite .nmw img{height:21mm;width:auto;max-width:100%;display:block}',
+ '.pubstd .h-cite .wtxt{display:inline-block;text-align:center;font:bold 19pt/1.12 '+F+'}.pubstd .h-cite .wtxt span{display:block;color:'+B.ink+'}.pubstd .h-cite .wtxt span+span{color:'+B.a+';font-size:22pt}.pubstd .h-cite .wtxt i{display:flex;align-items:center;gap:1.2mm;margin:1.4mm auto 0;width:100%}.pubstd .h-cite .wtxt i:before,.pubstd .h-cite .wtxt i:after{content:"";flex:1;height:.45mm;background:'+B.ink+'}.pubstd .h-cite .wtxt i b{display:block;width:22mm;height:1.3mm;background:'+B.a+';transform:skewX(-35deg)}',
  '.pubstd .h-cite .cr{text-align:right;font:7.4pt/1.45 '+SANS+';color:#333}.pubstd .h-cite .ty{font:bold 11pt '+SANS+';letter-spacing:1.5pt;text-transform:uppercase;color:#9b1c1c;margin-bottom:1mm}.pubstd .h-cite .cl{font:bold 8.4pt '+SANS+';color:'+B.p+';margin-bottom:.6mm}.pubstd .h-cite .is b{color:'+B.p+'}',
  '.pubstd .h-band{display:flex;align-items:center;gap:5mm;background:'+B.p+';padding:2.5mm 4mm;border-bottom:1.4mm solid '+B.g+';margin-bottom:1.8mm}.pubstd .h-band .plate{background:#fff;border-radius:1.5mm;padding:1.2mm 2.5mm}.pubstd .h-band .plate img{height:15mm;width:auto;display:block}',
  '.pubstd .h-band .bn{flex:1;text-align:center;font:bold 16pt/1.15 '+F+';color:#fff;text-wrap:balance}.pubstd .h-band .bn small{display:block;font:bold 8pt '+SANS+';letter-spacing:1.6pt;color:#f1d58a;margin-top:1mm}',
@@ -161,7 +161,8 @@ printHTML=function(a){
  '.pubstd .subt{font:italic 12pt/1.25 '+F+';color:'+B.a+';margin:-1.5mm 0 3mm}',
  '.pubstd .kp{margin-top:3mm;border:1pt solid '+B.p+';border-top:3pt solid '+B.p+';padding:2mm 3mm;font:8.7pt/1.25 '+F+';background:#fff}.pubstd .kp h3{font:bold 9pt '+SANS+';color:'+B.p+';text-transform:uppercase;letter-spacing:.7pt;margin:0 0 1.2mm}.pubstd .kp p{margin:0 0 1.2mm}.pubstd .kp b{font-family:'+SANS+';color:'+B.a+';margin-right:1mm}',
  '.pubstd .ric{border:0;background:'+B.soft+';border-top:3pt solid '+B.g+';padding:2.4mm 3.2mm;font:8.8pt/1.25 '+F+'}.pubstd .ric h3{font:bold 10pt '+SANS+';color:'+B.p+';text-transform:uppercase;letter-spacing:.7pt;margin:0 0 1.5mm}.pubstd .ric h4{font:bold 8.4pt '+SANS+';color:'+B.a+';margin:2mm 0 .6mm}.pubstd .ric ul{margin:0;padding-left:4mm}.pubstd .ric li{margin-bottom:.6mm}',
- '.pubstd .tblock{margin-bottom:4mm}.pubstd .tblock h1.title{font-size:22pt;margin-bottom:2.5mm}.pubstd .tblock .affs{columns:2;column-gap:6mm}',
+ '.pubstd .tblock{margin-bottom:4mm}.pubstd .tblock h1.title{font-size:22pt;margin-bottom:2.5mm}.pubstd .tblock .authors{font-size:10.5pt;margin-bottom:1.6mm}',
+ '.pubstd .tblock .affs{display:grid;grid-template-columns:auto 1fr;column-gap:1.2mm;row-gap:.5mm;font-size:8.6pt;line-height:1.3}.pubstd .tblock .affs sup{font-size:7pt;line-height:1.3;vertical-align:baseline;position:relative;top:-.25em;text-align:right}.pubstd .tblock .corr{margin-top:1.6mm}',
  '.pubstd .info2{margin-top:3mm;padding-top:2.5mm;border-top:.6pt solid #bbb}',
  '.pubstd .wm{position:fixed;left:0;right:0;top:40%;text-align:center;font:bold 120pt '+SANS+';color:rgba(155,28,28,.10);transform:rotate(-32deg);letter-spacing:12pt;z-index:0;pointer-events:none}'
  ].join('\n');
@@ -199,6 +200,7 @@ printHTML=function(a){
  var citeBox='<div class="box"><h4>How to cite</h4>'+cite+'</div>';
  var oaBox='<div class="oa"><b>Open access.</b> &copy; '+esc(a.year)+' The authors. Published by '+esc(S.publisher)+' under the '+esc(a.license||S.license)+' licence, which permits use, sharing and reproduction in any medium, provided the original work is properly cited.</div>';
  var affHtml='<div class="affs">'+affs.map(function(f,i){return '<sup>'+(i+1)+'</sup>'+esc(f);}).join('<br>')+'</div>';
+ var affGrid='<div class="affs">'+affs.map(function(f,i){return '<sup>'+(i+1)+'</sup><span>'+esc(f)+'</span>';}).join('')+'</div>';
  var absBody=a.abstract?fmt(a.abstract,a,{}):'<p class="ps-ph">Structured abstract: Background, Methods, Results, Conclusions.</p>';
  var kwHtml='<div class="kv"><b>Keywords:</b> '+kw+'</div><div class="kv"><b>Subject area:</b> '+pubPh(a.branch,S.scope||'subject area')+'</div>';
  var right='<div class="abs"><h2>Abstract</h2>'+(a.abstract?fmt(a.abstract,a,{}):'<p class="ps-ph">Structured abstract: Background, Methods, Results, Conclusions.</p>')
@@ -211,7 +213,7 @@ printHTML=function(a){
     ?'<div class="fp"><div class="left"><h1 class="title">'+esc(a.title)+'</h1>'+subt+'<div class="authors">'+al+'</div>'+affHtml+corrHtml+pubKeyPoints(a)+metaBox+citeBox+oaBox+'</div>'
      +'<div class="abs"><h2>Abstract</h2>'+absBody+pubAbsTail(a)+kwHtml+'</div></div>'
     :T==='context'
-    ?'<div class="tblock"><h1 class="title">'+esc(a.title)+'</h1>'+subt+'<div class="authors">'+al+'</div>'+affHtml+corrHtml+'</div>'
+    ?'<div class="tblock"><h1 class="title">'+esc(a.title)+'</h1>'+subt+'<div class="authors">'+al+'</div>'+affGrid+corrHtml+'</div>'
      +'<div class="fp"><div class="abs"><h2>Abstract</h2>'+absBody+pubAbsTail(a)+kwHtml+'</div>'
      +'<div class="left">'+pubContext(a)+'<div class="info2">'+metaBox.replace('class="meta"','class="meta" style="margin-top:0;border-top:0;padding-top:0"')+citeBox+oaBox+'</div></div></div>'
     :'<div class="fp">'+left+right+'</div>')
