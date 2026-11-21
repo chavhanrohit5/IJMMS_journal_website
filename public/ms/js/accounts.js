@@ -62,11 +62,15 @@ document.addEventListener('change',async function(e){var t=e.target;if(!t.datase
  if(!confirm('Change the role of '+u.name+' to '+roleLabel(t.value)+'?')){t.value=u.role;return;}
  try{var r=await api('POST','/api/users/'+encodeURIComponent(u.id)+'/role',{role:t.value});Object.assign(u,r.user);toast('Role changed.');route();}catch(x){toast(x.message);t.value=u.role;}});
 
+/* ---- admin menu: count of new submissions waiting ---- */
+var _accAM=adminMenu;adminMenu=function(sub){var h=_accAM(sub),n=(typeof SUBS!=='undefined'?SUBS:[]).filter(function(s){return s.status==='Submitted';}).length;
+ return n?h.replace(/(href="#\/admin\/subs"[^>]*>)Submissions</,'$1Submissions <span class="newbadge">'+n+' new</span><'):h;};
+
 /* ---- banner while the admin works inside a user's account ---- */
 var _accRC=renderChrome;renderChrome=function(){_accRC.apply(this,arguments);var b=document.getElementById('impbar');
  if(typeof SRV!=='undefined'&&SRV.flags&&SRV.flags.imp&&curUser()){var u=curUser();if(!b){b=document.createElement('div');b.id='impbar';document.body.insertBefore(b,document.body.firstChild);}
   b.innerHTML='Admin view: you are working as <b>'+esc(u.name)+'</b> ('+esc(roleLabel(u.role))+', '+esc(u.email)+') <button class="btn sm gold" data-act="backadmin">Return to admin</button>';}
  else if(b)b.remove();};
 
-(function(){var c=document.createElement('style');c.textContent='#impbar{position:sticky;top:0;z-index:99;background:#B8860B;color:#fff;padding:8px 14px;text-align:center;font-size:14px}#impbar .btn{margin-left:10px;background:#0D2B4E;border-color:#0D2B4E;color:#fff}.pwshow{margin-top:4px;font-size:12.5px;color:#0E7C7B}.pwshow code{background:#eef6f5;padding:1px 6px;border-radius:3px;font-size:13px;color:#0D2B4E}';document.head.appendChild(c);})();
+(function(){var c=document.createElement('style');c.textContent='.newbadge{background:#b42318;color:#fff;border-radius:9px;padding:1px 7px;font-size:11px;font-weight:bold;margin-left:4px}#impbar{position:sticky;top:0;z-index:99;background:#B8860B;color:#fff;padding:8px 14px;text-align:center;font-size:14px}#impbar .btn{margin-left:10px;background:#0D2B4E;border-color:#0D2B4E;color:#fff}.pwshow{margin-top:4px;font-size:12.5px;color:#0E7C7B}.pwshow code{background:#eef6f5;padding:1px 6px;border-radius:3px;font-size:13px;color:#0D2B4E}';document.head.appendChild(c);})();
 })();

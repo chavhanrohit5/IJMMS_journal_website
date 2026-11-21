@@ -17,6 +17,8 @@ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&':
 
 /* banner for each kind of message, chosen from the subject */
 const KINDS = [
+  [/new manuscript submitted/i, '📥', 'New manuscript submitted', '#0D2B4E'],
+  [/revised manuscript submitted/i, '🔄', 'Revised manuscript submitted', '#0E7C7B'],
   [/copyright form received/i, '✍️', 'Copyright form received', '#0E7C7B'],
   [/sign the copyright form/i, '✍️', 'Please sign the copyright form', '#B8860B'],
   [/payment received/i, '✅', 'Payment received – thank you', '#1e7d32'],
@@ -40,7 +42,7 @@ const KINDS = [
   [/test email/i, '✅', 'Test e-mail', C.teal],
   [/reset your password/i, '🔑', 'Reset your password', C.navy],
 ];
-const HEAD_ICON = [[/COPYRIGHT|HOW TO SIGN/, '✍️'], [/APC|PAY|CHARGE/, '💳'], [/LOGIN/, '🔐'], [/JOURNEY|PROGRESS/, '🧭'], [/NEXT STEP/, '➡️'], [/EDITOR/, '📝'], [/REVIEWER COMMENT/, '💬'], [/RESUBMIT|HOW TO/, '🔁'], [/ACCEPT/, '🎉'], [/SUBMISSION|DETAILS/, '📄'], [/APC|CHARGE|PAYMENT/, '💳']];
+const HEAD_ICON = [[/NEW MANUSCRIPT|REVISED MANUSCRIPT/, '📥'], [/COPYRIGHT|HOW TO SIGN/, '✍️'], [/APC|PAY|CHARGE/, '💳'], [/LOGIN/, '🔐'], [/JOURNEY|PROGRESS/, '🧭'], [/NEXT STEP/, '➡️'], [/EDITOR/, '📝'], [/REVIEWER COMMENT/, '💬'], [/RESUBMIT|HOW TO/, '🔁'], [/ACCEPT/, '🎉'], [/SUBMISSION|DETAILS/, '📄'], [/APC|CHARGE|PAYMENT/, '💳']];
 
 function inline(t) { // escape, then bold / links / reference numbers / quoted titles
   let h = esc(t);
@@ -109,6 +111,7 @@ function parse(body) {
 
 function firstUrl(body) {
   const login = String(body).match(/Login page\s*:\s*(https?:\/\/\S+)/i); if (login) return [login[1], 'Log in to your dashboard'];
+  const adm = String(body).match(/Open in admin panel\s*:\s*(https?:\/\/\S+)/i); if (adm) return [adm[1], 'Open the submission'];
   const pay = String(body).match(/Pay online\s*:\s*(https?:\/\/\S+)/i); if (pay) return [pay[1], 'Pay APC online'];
   const rs = String(body).match(/Reset link\s*:\s*(https?:\/\/\S+)/i); if (rs) return [rs[1], 'Set a new password'];
   const link = String(body).match(/Link\s*:\s*(https?:\/\/\S+)/i); if (link) return [link[1], 'Read your article'];

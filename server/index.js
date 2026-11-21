@@ -464,7 +464,23 @@ app.put('/api/subs/:id', auth.requireAuth, wrap(async (req, res) => {
   await db.q(`INSERT INTO subs(id,author_id,reviewer_id,ref,data,updated) VALUES ($1,$2,$3,$4,$5,now())
     ON CONFLICT (id) DO UPDATE SET author_id=$2,reviewer_id=$3,ref=$4,data=$5,updated=now()`, [id, s.authorId || '', s.reviewerId || '', s.ref, JSON.stringify(s)]);
   res.json({ ok: 1, sub: s });
+  if (!auth.isStaff(u) && (!ex || (ex.data.status !== 'Submitted' && s.status === 'Submitted'))) {
+    notifyOffice(S, s, ex ? 'revised' : 'new').catch((e) => console.warn('[mail] office notice:', e.message));
+  }
 }));
+/* e-mail to the editorial office when an author submits a new or revised manuscript */
+async function notifyOffice(S, s, kind) {
+  if (!S.email || !EMAIL_RE.test(S.email)) return;
+  const names = String(s.authorsRaw || '').split(/\n|\|\|/).map((l) => l.split('|')[0].trim()).filter(Boolean).join(', ');
+  const quick = /Quick submission/.test(s.note || '');
+  const subj = kind === 'new' ? `[${s.ref}] New manuscript submitted - ${S.short}` : `[${s.ref}] Revised manuscript submitted - ${S.short}`;
+  const body = `${kind === 'new' ? 'A new manuscript has been submitted' : 'An author has submitted a revised manuscript'} to ${S.name}.\n\n`
+    + `${kind === 'new' ? 'NEW MANUSCRIPT' : 'REVISED MANUSCRIPT'}\nReference no. : ${s.ref}\nTitle         : ${s.title || '-'}\nArticle type  : ${s.type || '-'}\nSubject area  : ${s.branch || '-'}\nSubmitted by  : ${s.authorName || '-'} (${s.authorEmail || '-'})\nAuthors       : ${names || '-'}\nFile          : ${s.fileName || '-'}\nForm used     : ${quick ? 'Quick submission (main manuscript only)' : 'Full submission form'}\nDate          : ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} IST\nOpen in admin panel : ${SITE}/#/sub/${s.id}\n\n`
+    + `NEXT STEPS\n- Open the submission and check the files and details.\n- Start editorial screening, then assign a reviewer.\n- The author has already received an acknowledgement e-mail.\n`;
+  const rec = { id: U.uid(), to: S.email.toLowerCase(), toName: `${S.short} Editorial Office`, subject: subj, body, att: '', subId: s.id, date: new Date().toISOString(), sent: false, auto: true, status: mailer.configured ? 'sending' : 'queued' };
+  await db.q('INSERT INTO outbox(id,data) VALUES ($1,$2) ON CONFLICT (id) DO NOTHING', [rec.id, JSON.stringify(rec)]);
+  if (mailer.configured) await deliver(rec.id);
+}
 app.delete('/api/subs/:id', auth.requireStaff, wrap(async (req, res) => {
   await db.q('DELETE FROM subs WHERE id=$1', [req.params.id]);
   await removeFile('sub:' + req.params.id);
