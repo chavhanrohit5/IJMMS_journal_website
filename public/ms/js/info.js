@@ -21,7 +21,7 @@ function glanceTable(){var rows='';
  rows+=kvRow('Journal title',esc(S.name))+kvRow('Abbreviation',esc(S.abbr))+kvRow('Publisher',esc(S.publisher)+(S.address?', '+esc(S.address):''))+kvRow('Subject area',esc(S.scope||''))+kvRow('Frequency',esc(S.freq))+kvRow('Language','English')
   +kvRow('ISSN',(S.issnO?'eISSN '+esc(S.issnO):'')+(S.issnO&&S.issnP?' &middot; ':'')+(S.issnP?'pISSN '+esc(S.issnP):''))
   +kvRow('Peer review','Double-blind peer review by two independent reviewers (see <a href="#/ethics">publication ethics</a>)')+kvRow('Access and licence','Open access &middot; '+esc(S.license))
-  +kvRow('Submission','Free of charge &middot; article processing charges, if applicable, are payable only after acceptance (<a href="#/apc">APC rate card</a>)')
+  +kvRow('Submission','Article processing charges are payable only after acceptance.')
   +kvRow('DOI',S.doiPrefix&&S.doiPrefix!=='10.xxxxx'?'Prefix '+esc(S.doiPrefix):'')
   +kvRow('Quality standard',isoLine())+kvRow('Impact factor',ifLine().replace('Impact factor: ',''))+kvRow('Editorial office','<a href="mailto:'+esc(S.email)+'">'+esc(S.email)+'</a>');
  return '<table class="gl">'+rows+'</table>';}
