@@ -53,7 +53,7 @@ function publicSettings(S, staff) {
 /* ---------------- article persistence ---------------- */
 const HEAVY = ['sections', 'refs', 'figures', 'ack', 'funding', 'coi', 'ethics', 'data', 'contrib', 'consent', 'reg', 'supp', 'abv'];
 const lightArticle = (a) => { const o = { ...a, _light: true }; HEAVY.forEach((k) => { if (k === 'figures') o.figures = (a.figures || []).map((f) => ({ caption: f.caption || '', wide: !!f.wide })); else if (k === 'sections') o.sections = []; else o[k] = ''; }); o.nfig = (a.figures || []).length; return o; };
-const PUB_TPL = 'pubstd-2026-11-21u'; // bump when public/*/js/pubstd.js changes the printed layout
+const PUB_TPL = 'pubstd-2026-11-21w'; // bump when public/*/js/pubstd.js changes the printed layout
 const contentHash = (a, S) => U.sha1(JSON.stringify({ ...a, views: 0, downloads: 0, _light: undefined, T: PUB_TPL, S: [S.name, S.abbr, S.short, S.publisher, S.issnP, S.issnO, S.license, S.apcApproved, S.doiPrefix, S.freq, S.website, S.address, S.email, S.editorName, S.pdfTemplate, S.pdfHeader] }));
 
 function saveFigures(a) {
@@ -354,7 +354,7 @@ app.post('/api/articles/:id/view', wrap(async (req, res) => {
 }));
 
 /* ---- submissions ---- */
-const AUTHOR_KEYS = ['fileName', 'hasFile', 'note', 'branch', 'history', 'corr', 'keywords', 'abstract', 'title', 'authorsRaw', 'type'];
+const AUTHOR_KEYS = ['fileName', 'hasFile', 'note', 'branch', 'history', 'corr', 'keywords', 'abstract', 'title', 'authorsRaw', 'type', 'fmt'];
 const nextRef = async (S) => { const y = new Date().getFullYear(); const n = await db.nextCounter('ref-' + y); return `${S.short}/${y}/${String(n).padStart(4, '0')}`; };
 app.put('/api/subs/:id', auth.requireAuth, wrap(async (req, res) => {
   const id = req.params.id; const u = req.user; const inc = req.body || {};
@@ -390,16 +390,27 @@ app.put('/api/subs/:id', auth.requireAuth, wrap(async (req, res) => {
 app.delete('/api/subs/:id', auth.requireStaff, wrap(async (req, res) => {
   await db.q('DELETE FROM subs WHERE id=$1', [req.params.id]);
   await removeFile('sub:' + req.params.id);
+  const extra = await db.q("SELECT key FROM files WHERE key LIKE $1", ['sub:' + req.params.id + '\\_\\_%']);
+  for (const r of extra.rows) await removeFile(r.key);
   res.json({ ok: 1 });
 }));
 
 /* ---- files (manuscripts, resumes, uploaded article PDFs) ---- */
 const KEY_RE = /^(sub:[A-Za-z0-9_-]{1,48}|rv_[A-Za-z0-9_-]{1,48}|[A-Za-z0-9_-]{1,48})$/;
-const MIMES = { pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
+const MIMES = { pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', tif: 'image/tiff', tiff: 'image/tiff',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', csv: 'text/csv' };
+const DOC_EXT = ['pdf', 'doc', 'docx']; const IMG_EXT = ['jpg', 'jpeg', 'png'];
+const subOf = (key) => key.slice(4).split('__')[0]; // sub:<id> or sub:<id>__<slot><n>
 function magicOk(ext, b) {
   if (ext === 'pdf') return b.slice(0, 4).toString() === '%PDF';
   if (ext === 'docx') return b.slice(0, 2).toString() === 'PK';
   if (ext === 'doc') return b[0] === 0xd0 && b[1] === 0xcf;
+  if (ext === 'jpg' || ext === 'jpeg') return b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
+  if (ext === 'png') return b.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  if (ext === 'tif' || ext === 'tiff') return (b[0] === 0x49 && b[1] === 0x49 && b[2] === 0x2a && b[3] === 0) || (b[0] === 0x4d && b[1] === 0x4d && b[2] === 0 && b[3] === 0x2a);
+  if (ext === 'xlsx') return b.slice(0, 2).toString() === 'PK';
+  if (ext === 'csv') return !b.slice(0, 65536).includes(0);
   return false;
 }
 async function removeFile(key) {
@@ -413,14 +424,21 @@ app.put('/api/files/:key', express.raw({ type: () => true, limit: '30mb' }), wra
   const ext = (name.split('.').pop() || '').toLowerCase();
   const buf = req.body;
   if (!Buffer.isBuffer(buf) || !buf.length) return bad(res, 'Empty file.');
-  if (!MIMES[ext] || !magicOk(ext, buf)) return bad(res, 'Only valid PDF, DOC or DOCX files are accepted.');
+  if (!MIMES[ext] || !magicOk(ext, buf)) return bad(res, 'This file type is not accepted, or the file does not match its extension.');
+  const isExtra = key.startsWith('sub:') && key.includes('__');
+  if (!isExtra && !key.startsWith('gl_') && !DOC_EXT.includes(ext)) return bad(res, 'Only valid PDF, DOC or DOCX files are accepted here.');
   if (key.startsWith('rv_')) {
     if (buf.length > 3 * 1024 * 1024) return bad(res, 'Resume must be 3 MB or smaller.');
     if (!u && !U.allow('rv:' + req.ip, 6, 3600e3)) return bad(res, 'Too many uploads. Try later.', 429);
   } else if (key.startsWith('sub:')) {
     if (!u) return bad(res, 'Please log in.', 401);
-    const sid = key.slice(4); const s = (await db.q('SELECT author_id FROM subs WHERE id=$1', [sid])).rows[0];
+    const sid = subOf(key); const s = (await db.q('SELECT author_id FROM subs WHERE id=$1', [sid])).rows[0];
     if (s && !(auth.isStaff(u) || s.author_id === u.id)) return bad(res, 'Not allowed.', 403);
+    if (!s && !U.allow('subup:' + u.id, 60, 3600e3)) return bad(res, 'Too many uploads. Try later.', 429);
+  } else if (key.startsWith('gl_')) {
+    if (!auth.isStaff(u)) return bad(res, 'Editor access required.', 403);
+    if (!IMG_EXT.includes(ext)) return bad(res, 'Guideline images must be JPG or PNG.');
+    if (buf.length > 8 * 1024 * 1024) return bad(res, 'Image must be 8 MB or smaller.');
   } else {
     if (!auth.isStaff(u)) return bad(res, 'Editor access required.', 403);
     if (ext !== 'pdf') return bad(res, 'Article files must be PDF.');
@@ -433,9 +451,10 @@ app.put('/api/files/:key', express.raw({ type: () => true, limit: '30mb' }), wra
 }));
 async function canReadFile(key, f, u) {
   if (key.startsWith('rv_')) return auth.isStaff(u);
+  if (key.startsWith('gl_')) return true;
   if (key.startsWith('sub:')) {
     if (!u) return false; if (auth.isStaff(u)) return true;
-    const s = (await db.q('SELECT author_id,reviewer_id FROM subs WHERE id=$1', [key.slice(4)])).rows[0];
+    const s = (await db.q('SELECT author_id,reviewer_id FROM subs WHERE id=$1', [subOf(key)])).rows[0];
     return s ? (s.author_id === u.id || s.reviewer_id === u.id) : f.owner === u.id;
   }
   const a = (await db.q('SELECT status FROM articles WHERE id=$1', [key])).rows[0];

@@ -7,7 +7,7 @@
    article record. Empty identifiers print as grey placeholders, never as
    invented values. Loaded after articles2.js, so it replaces printHTML.
    ========================================================================== */
-var PUB_TPL='pubstd-2026-11-21u';
+var PUB_TPL='pubstd-2026-11-21w';
 if(typeof DEFAULTS!=='undefined'){if(!('pdfTemplate' in DEFAULTS))DEFAULTS.pdfTemplate='context';if(!('pdfHeader' in DEFAULTS))DEFAULTS.pdfHeader='citation';if(!('website' in DEFAULTS))DEFAULTS.website='';if(!('editorName' in DEFAULTS))DEFAULTS.editorName='';}
 
 function pubBrand(){return JID==='ls'
@@ -56,13 +56,14 @@ function pubDeclPlus(a){var ls=JID==='ls',trial=/random|trial/i.test(String(a.ty
   ['Funding',a.funding,1],['Conflict of interest',a.coi,1],['Author contributions',a.contrib,1],
   [trial?'Data sharing statement':'Data availability',a.data,1],
   ['Use of AI-assisted technology',a.aiUse,1],
-  ['Acknowledgements',a.ack,0],['Supplementary material',a.supp,0],['Abbreviations',a.abv,0]];
+  ['Acknowledgements',a.ack,0],['Prior presentation',a.confPres,0],['Supplementary material',a.supp,0],['Abbreviations',a.abv,0]];
  return rows.filter(function(r){return r[0]&&(r[1]||r[2]);}).map(function(r){return '<h3>'+r[0]+'</h3><p>'+(r[1]?inl(r[1]):'<span class="ps-ph">'+(r[0]==='Use of AI-assisted technology'?'State whether AI tools were used, which, and how - or "None".':'Not stated')+'</span>')+'</p>';}).join('');}
 function pubAbsTail(a){var t='';if(a.reg)t+='<p class="abt"><b>Trial registration:</b> '+inl(a.reg)+'</p>';else if(/random|trial/i.test(String(a.type||'')+' '+String(a.design||'')))t+='<p class="abt"><b>Trial registration:</b> <span class="ps-ph">CTRI/YYYY/MM/NNNNNN</span></p>';
  if(a.funding)t+='<p class="abt"><b>Funding:</b> '+inl(a.funding)+'</p>';return t;}
-function pubKeyPoints(a){var q=a.keyQ,f=a.keyF,m=a.keyM,ph=function(v,h){return v?inl(v):'<span class="ps-ph">'+h+'</span>';};
+function pubKeyPoints(a){if(!pubSummaryBox(a))return '';var q=a.keyQ,f=a.keyF,m=a.keyM,ph=function(v,h){return v?inl(v):'<span class="ps-ph">'+h+'</span>';};
  return '<div class="kp"><h3>Key Points</h3><p><b>Question</b> '+ph(q,'What question did this study address?')+'</p><p><b>Findings</b> '+ph(f,'Main result, with the key number.')+'</p><p><b>Meaning</b> '+ph(m,'What the findings mean for practice.')+'</p></div>';}
-function pubContext(a){var b=function(v,h){var l=String(v||'').split('\n').map(function(x){return x.trim().replace(/^[-\u2022]\s*/,'');}).filter(Boolean);return l.length?'<ul>'+l.map(function(x){return '<li>'+inl(x)+'</li>';}).join('')+'</ul>':'<p class="ps-ph">'+h+'</p>';};
+function pubSummaryBox(a){var t=String(a.type||'');return /^(Original Research|Systematic Review|Short Communication|Methods and Protocols|Case Series)/.test(t)||!!(a.known||a.adds||a.keyQ);}
+function pubContext(a){if(!pubSummaryBox(a))return '';var b=function(v,h){var l=String(v||'').split('\n').map(function(x){return x.trim().replace(/^[-\u2022]\s*/,'');}).filter(Boolean);return l.length?'<ul>'+l.map(function(x){return '<li>'+inl(x)+'</li>';}).join('')+'</ul>':'<p class="ps-ph">'+h+'</p>';};
  return '<div class="ric"><h3>Research in context</h3><h4>What is already known on this topic</h4>'+b(a.known,'2-3 short points on existing evidence.')+'<h4>What this study adds</h4>'+b(a.adds,'2-3 short points on the new findings.')+'<h4>How this study might affect research, practice or policy</h4>'+b(a.impl,'1-2 short points.')+'</div>';}
 
 function pubDecl(a){
@@ -75,6 +76,7 @@ function pubDecl(a){
   ['Author contributions',a.contrib,1],
   ['Data availability',a.data,1],
   ['Acknowledgements',a.ack,0],
+  ['Prior presentation',a.confPres,0],
   ['Supplementary material',a.supp,0],
   ['Abbreviations',a.abv,0]];
  if(ls&&a.reg)rows.splice(3,0,['Trial / review registration',a.reg,0]);
@@ -228,7 +230,7 @@ printHTML=function(a){
     :T==='context'
     ?'<div class="tblock"><h1 class="title">'+esc(a.title)+'</h1>'+subt+'<div class="authors">'+al+'</div>'+affGrid+corrHtml+'</div>'
      +'<div class="fp"><div class="abs"><h2>Abstract</h2>'+absBody+pubAbsTail(a)+kwHtml+'</div>'
-     +'<div class="left">'+pubContext(a)+'<div class="info2">'+metaBox.replace('class="meta"','class="meta" style="margin-top:0;border-top:0;padding-top:0"')+citeBox+oaBox+'</div></div></div>'
+     +'<div class="left">'+pubContext(a)+'<div class="info2"'+(pubSummaryBox(a)?'':' style="margin-top:0;border-top:0;padding-top:0"')+'>'+metaBox.replace('class="meta"','class="meta" style="margin-top:0;border-top:0;padding-top:0"')+citeBox+oaBox+'</div></div></div>'
     :'<div class="fp">'+left+right+'</div>')
   +'<hr class="rule">'
   +'<div class="cols">'+bodyHtml(a)+'<div class="decl">'+(T==='standard'?pubDecl(a):pubDeclPlus(a))+'</div></div>'
