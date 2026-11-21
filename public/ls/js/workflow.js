@@ -1,6 +1,6 @@
 
 /* ========== LOGIN / REGISTER ========== */
-function vLogin(){return hd('Login')+pg('<div class="grid2"><div class="card"><div class="fg"><label>Email (or <b>admin</b>)</label><input id="le" autocomplete="username"></div><div class="fg"><label>Password</label><input type="password" id="lp" autocomplete="current-password"></div><button class="btn" data-act="login">Login</button> <a class="btn ghost" href="#/register">Register as author</a>'+'</div><aside class="side"><div class="card"><h4>Roles</h4><p style="font-size:13px"><b>Author</b> submits and tracks manuscripts.<br><b>Reviewer</b> evaluates assigned manuscripts.<br><b>Editor / Admin</b> manages submissions, issues and publishing.</p></div></aside></div>');}
+function vLogin(){return hd('Login')+pg('<div class="grid2"><div class="card"><div class="fg"><label>Login ID (e-mail)</label><input id="le" autocomplete="username"></div><div class="fg"><label>Password</label><input type="password" id="lp" autocomplete="current-password"></div><button class="btn" data-act="login">Login</button> <a class="btn ghost" href="#/register">Register as author</a>'+'</div><aside class="side"><div class="card"><h4>Roles</h4><p style="font-size:13px"><b>Author</b> submits and tracks manuscripts.<br><b>Reviewer</b> evaluates assigned manuscripts.<br><b>Editor / Admin</b> manages submissions, issues and publishing.</p></div></aside></div>');}
 function vRegister(){return hd('Register as author')+pg('<div class="card" style="max-width:520px"><div class="fg"><label>Full name</label><input id="rg-n"></div><div class="fg"><label>Email</label><input id="rg-e" type="email"></div><div class="fg"><label>Affiliation</label><input id="rg-a"></div><div class="fg"><label>Password (min 6 characters)</label><input id="rg-p" type="password"></div><button class="btn" data-act="register">Create account</button><p class="note" style="margin-top:12px">Accounts are stored in this browser (no server). Use a password you do not use elsewhere.</p></div>');}
 
 /* ========== SUBMISSIONS ========== */
@@ -37,7 +37,7 @@ function vAdmin(p){var sub=p[1]||'list';var c='';window._newIss=null;
  else if(sub==='edit')c=vEditor(p[2]);else if(sub==='subs')c=vAdminSubs();else if(sub==='issues')c=vAdminIssues();
  else if(fa&&sub==='users')c=vUsers();else if(fa&&sub==='content')c=vContentEd();else if(fa&&sub==='compliance')c=vUgcEd();else if(fa&&sub==='tools')c=vTools();
  else if(fa&&sub==='settings')c=vSettings();else if(fa&&sub==='backup')c=vBackup();else c=vAdminList();
- return hd('Admin panel','Signed in as '+esc(curUser().name)+' ('+curUser().role+')')+pg('<div class="adm">'+adminMenu(sub)+'<div>'+c+'</div></div>');}
+ return hd('Admin panel','Signed in as '+esc(curUser().name)+(curUser().role==='editor'?' (Editor)':''))+pg('<div class="adm">'+adminMenu(sub)+'<div>'+c+'</div></div>');}
 function newIssueDefault(){return window._newIss||null;}
 var ADM={q:'',f:'all',pg:0,per:25};
 function admFiltered(){var q=ADM.q.toLowerCase();return ARTS.filter(function(a){if(ADM.f==='published'&&a.status!=='published')return false;if(ADM.f==='draft'&&a.status!=='draft')return false;return !q||(a.title+' '+authNames(a)+' '+(a.doi||'')).toLowerCase().indexOf(q)>-1;}).sort(function(a,b){return (b.published||'').localeCompare(a.published||'')||(b.created||0)-(a.created||0);});}

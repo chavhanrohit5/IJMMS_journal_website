@@ -5,7 +5,7 @@
    "1. " steps, "[done]/[current]/[next]" journey lines, "With regards,"
    sign-off). This turns it into a designed e-mail: journal logo, a banner
    with an icon for the event, headings, tables, a progress flowchart, boxes,
-   bold text, the Editor-in-Chief's signature and a footer. The plain text is
+   bold text, an automated-response note and a footer. The plain text is
    still sent alongside as the text version.
    E-mail clients ignore <style> blocks and SVG, so everything is inline CSS
    and tables; icons are emoji.
@@ -17,6 +17,7 @@ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&':
 
 /* banner for each kind of message, chosen from the subject */
 const KINDS = [
+  [/reset your password/i, '🔑', 'Reset your password', '#0D2B4E'],
   [/welcome|login details|account/i, '👋', 'Welcome! Your account is ready', C.teal],
   [/manuscript received/i, '📨', 'Manuscript received', C.teal],
   [/entered peer review/i, '🔍', 'Your manuscript is under peer review', C.navy],
@@ -32,6 +33,7 @@ const KINDS = [
   [/new reviewer application/i, '🔔', 'New reviewer application', C.navy],
   [/reviewer application/i, '📋', 'Your reviewer application', C.navy],
   [/test email/i, '✅', 'Test e-mail', C.teal],
+  [/reset your password/i, '🔑', 'Reset your password', C.navy],
 ];
 const HEAD_ICON = [[/LOGIN/, '🔐'], [/JOURNEY|PROGRESS/, '🧭'], [/NEXT STEP/, '➡️'], [/EDITOR/, '📝'], [/REVIEWER COMMENT/, '💬'], [/RESUBMIT|HOW TO/, '🔁'], [/ACCEPT/, '🎉'], [/SUBMISSION|DETAILS/, '📄'], [/APC|CHARGE|PAYMENT/, '💳']];
 
@@ -51,7 +53,7 @@ function heading(t) {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0 10px"><tr><td style="${FONT};font-size:16px;font-weight:bold;color:${C.navy};padding:0 0 6px;border-bottom:2px solid ${C.gold}">${ic}&nbsp; ${esc(label)}</td></tr></table>`;
 }
 function kvTable(rows, box) {
-  const tr = rows.map(([k, v], i) => `<tr><td style="${FONT};font-size:13.5px;font-weight:bold;color:${C.navy};padding:9px 12px;width:34%;vertical-align:top;background:${box ? '#e9f6f5' : (i % 2 ? '#ffffff' : C.soft)};border-bottom:1px solid ${C.line}">${esc(k)}</td><td style="${FONT};font-size:14px;color:${C.ink};padding:9px 12px;vertical-align:top;background:${box ? '#f4fbfa' : (i % 2 ? '#ffffff' : C.soft)};border-bottom:1px solid ${C.line}">${inline(v)}</td></tr>`).join('');
+  const tr = rows.map(([k, v], i) => `<tr><td style="${FONT};font-size:13.5px;font-weight:bold;color:${C.navy};padding:9px 12px;width:34%;white-space:nowrap;vertical-align:top;background:${box ? '#e9f6f5' : (i % 2 ? '#ffffff' : C.soft)};border-bottom:1px solid ${C.line}">${esc(k)}</td><td style="${FONT};font-size:14px;color:${C.ink};padding:9px 12px;vertical-align:top;word-break:break-all;background:${box ? '#f4fbfa' : (i % 2 ? '#ffffff' : C.soft)};border-bottom:1px solid ${C.line}">${inline(v)}</td></tr>`).join('');
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:4px 0 16px;border:${box ? `2px dashed ${C.teal}` : `1px solid ${C.line}`};border-radius:6px">${tr}</table>`;
 }
 function journey(items) { // vertical flowchart
@@ -78,7 +80,7 @@ function parse(body) {
   let sig = false;
   while (i < lines.length) {
     const raw = lines[i]; const l = raw.trim();
-    if (/^(with (kind )?regards|best regards|sincerely|yours sincerely)[,.]?$/i.test(l)) { flush(); sig = true; break; }
+    if (/^(with (kind )?regards|best regards|sincerely|yours sincerely)[,.]?$/i.test(l) || /^-{2,}$/.test(l) || /^this is an automated (response|message)/i.test(l)) { flush(); sig = true; break; }
     if (!l) { flush(); i++; continue; }
     if (isHead(l)) { flush(); section = l; out.push(heading(l)); i++; continue; }
     if (/^\[(done|current|next)\]\s+\d+\.\s+/.test(l)) {
@@ -102,6 +104,7 @@ function parse(body) {
 
 function firstUrl(body) {
   const login = String(body).match(/Login page\s*:\s*(https?:\/\/\S+)/i); if (login) return [login[1], 'Log in to your dashboard'];
+  const rs = String(body).match(/Reset link\s*:\s*(https?:\/\/\S+)/i); if (rs) return [rs[1], 'Set a new password'];
   const link = String(body).match(/Link\s*:\s*(https?:\/\/\S+)/i); if (link) return [link[1], 'Read your article'];
   return null;
 }
@@ -112,12 +115,8 @@ function emailHtml(m, S, site) {
   const ref = (String(m.subject || '').match(/^\[([^\]]+)\]/) || [])[1] || '';
   const { html, sig } = parse(m.body);
   const cta = firstUrl(m.body);
-  const logo = `${site}/assets/email-logo.png`, sign = `${site}/assets/signature.png`;
-  const title = `${S.editorTitle || 'Editor-in-Chief'}, ${S.short}`;
-  const sigBlock = sig ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 4px"><tr><td style="${FONT};font-size:15px;color:${C.ink}">With regards,</td></tr>
-<tr><td style="padding:6px 0 0"><img src="${sign}" width="170" alt="Signature of ${esc(S.editorName || 'the Editor-in-Chief')}" style="display:block;width:170px;height:auto;border:0"></td></tr>
-<tr><td style="padding:0"><div style="border-top:1px solid ${C.ink};width:230px;padding:6px 0 0;${FONT};font-size:15px;font-weight:bold;color:${C.navy}">${esc(S.editorName || 'Editorial Office')}</div></td></tr>
-<tr><td style="${FONT};font-size:13px;line-height:1.55;color:${C.mute}">${esc(title)}<br>${esc(S.name)}<br>${esc(S.publisher)}${S.address ? ', ' + esc(S.address) : ''}<br><a href="mailto:${esc(S.email)}" style="color:${C.teal}">${esc(S.email)}</a></td></tr></table>` : '';
+  const logo = `${site}/assets/email-logo.png`;
+  const sigBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0 8px"><tr><td style="background:${C.soft};border:1px solid ${C.line};border-radius:6px;padding:12px 16px;${FONT};font-size:13.5px;line-height:1.55;color:${C.mute}">🤖&nbsp; <b style="color:${C.navy}">This is an automated response.</b> Please do not reply to this message. For any query, please write to <a href="mailto:${esc(S.email)}" style="color:${C.teal};font-weight:bold">${esc(S.email)}</a>${ref ? ' and quote your reference number <b>' + esc(ref) + '</b>' : ''}.</td></tr></table>`;
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(m.subject)}</title></head>
 <body style="margin:0;padding:0;background:${C.page}">
 <div style="display:none;max-height:0;overflow:hidden">${esc(kind[2])}${ref ? ' – ' + esc(ref) : ''} · ${esc(S.short)}</div>
@@ -134,7 +133,7 @@ ${sigBlock}</td></tr>
 <tr><td style="padding:18px 30px 22px;background:${C.navy}"><div style="${FONT};font-size:13px;font-weight:bold;color:#f1d58a">${esc(S.name)} (${esc(S.short)})</div>
 <div style="${FONT};font-size:12px;line-height:1.6;color:#d7e2ee;margin-top:4px">Published by ${esc(S.publisher)}${S.address ? ' · ' + esc(S.address) : ''}<br>Peer-reviewed · Open access · ${esc(S.freq || '')}${S.issnO ? ' · eISSN ' + esc(S.issnO) : ''}${S.issnP ? ' · pISSN ' + esc(S.issnP) : ''}<br><a href="${site}" style="color:#ffffff">${esc(site.replace(/^https?:\/\//, ''))}</a> · <a href="mailto:${esc(S.email)}" style="color:#ffffff">${esc(S.email)}</a></div></td></tr>
 </table>
-<div style="${FONT};font-size:11px;color:#8a97a6;margin-top:12px;max-width:600px;line-height:1.5">This message was sent by the ${esc(S.short)} editorial system. Please quote the reference number when you reply.</div>
+<div style="${FONT};font-size:11px;color:#8a97a6;margin-top:12px;max-width:600px;line-height:1.5">Automated message from the ${esc(S.short)} editorial system.</div>
 </td></tr></table></body></html>`;
 }
 

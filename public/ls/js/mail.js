@@ -17,7 +17,7 @@ function genPw(){var c='abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789
 function userById(id){return USERS.filter(function(u){return u.id===id;})[0]||null;}
 function nextRef(){var y=new Date().getFullYear(),mx=0;SUBS.forEach(function(s){var m=String(s.ref||'').match(/\/(\d{4})\/(\d+)$/);if(m&&+m[1]===y)mx=Math.max(mx,+m[2]);});return S.short+'/'+y+'/'+String(mx+1).padStart(4,'0');}
 function ensureRef(s){if(!s.ref){s.ref=nextRef();}return s.ref;}
-function sigText(){return '\nWith regards,\n'+(S.editorName?S.editorName+'\n':'')+(S.editorTitle||'Editor-in-Chief')+', '+S.short+'\n'+S.name+' ('+S.short+')\n'+S.publisher+', '+S.address+'\n'+S.email+'\n';}
+function sigText(){return '\n--\nThis is an automated response. Please write to '+S.email+' for any query.\n';}
 var STAGES=['Manuscript received','Editorial screening (scope, ethics statements, formatting, similarity check)','Peer review by independent reviewers','Editorial decision (accept / minor revision / major revision / reject)','Revision, if requested (upload the revised file from your dashboard)','Acceptance letter issued','Production (copyediting, proof approval, DOI assignment)','Online publication in an issue'];
 function procText(cur){return 'MANUSCRIPT JOURNEY\n'+STAGES.map(function(t,i){return (i<cur?'[done]    ':i===cur?'[current] ':'[next]    ')+(i+1)+'. '+t;}).join('\n')+(S.timeline?'\n\nTypical timeline: '+S.timeline:'')+'\n';}
 function credText(u,tmp){return 'YOUR LOGIN DETAILS\nLogin ID  : '+u.email+'\nPassword  : '+(tmp||u.tmp?(tmp||u.tmp)+'  (temporary - please change it after your first login: My dashboard > Change password)':'the password you set when you registered')+'\nLogin page: '+portalUrl()+'\nKeep these details confidential.\n';}

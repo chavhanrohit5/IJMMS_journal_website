@@ -125,7 +125,7 @@ async function publicationMail(a) {
     + `Certificates of Publication for ${au.length > 1 ? 'all ' + au.length + ' authors are' : 'the author is'} attached to this e-mail (one PDF per author). `
     + `Please forward them to your co-authors. Each certificate can be verified online using the QR code printed on it, and can be downloaded again at any time from your submission page.\n\n`
     + `Please share the article link with your colleagues. Thank you for publishing with ${S.short}.\n\n`
-    + `With regards,\n${S.editorName ? S.editorName + '\n' : ''}${S.editorTitle || 'Editor-in-Chief'}, ${S.short}\n${S.name} (${S.short})\n${S.publisher}${S.address ? ', ' + S.address : ''}\n${S.email}\n`;
+    + `\n--\nThis is an automated response. Please write to ${S.email} for any query.\n`;
   const rec = { id: U.uid(), to: to.toLowerCase(), toName, subject: `${ref ? '[' + ref + '] ' : ''}Your article is now published - Certificate of Publication`, body, att: 'cert', subId: a.subId || '', artId: a.id, date: new Date().toISOString(), sent: false, auto: false, status: mailer.configured ? 'sending' : 'queued' };
   await db.q('INSERT INTO outbox(id,data) VALUES ($1,$2) ON CONFLICT (id) DO NOTHING', [rec.id, JSON.stringify(rec)]);
   if (mailer.configured) await deliver(rec.id);
@@ -226,7 +226,7 @@ app.use('/media', express.static(MEDIA, { maxAge: '30d', immutable: true }));
 app.get('/api/bootstrap', wrap(async (req, res) => {
   const u = req.user; const staff = auth.isStaff(u);
   const S = await getSettings();
-  const out = { settings: publicSettings(S, staff), me: u ? auth.publicUser(u) : null, flags: { server: true, smtp: mailer.configured, pdf: !!findChrome(), journal: JOURNAL } };
+  const out = { settings: publicSettings(S, staff), me: u ? auth.publicUser(u) : null, flags: { server: true, smtp: mailer.configured, pdf: !!findChrome(), journal: JOURNAL, imp: !!(u && req.cookies.jsid_admin && u.role !== 'admin') } };
   const ar = await db.q(staff ? 'SELECT data FROM articles' : "SELECT data FROM articles WHERE status='published'");
   out.articles = ar.rows.filter((r) => staff || U.artPublic(S, r.data)).map((r) => lightArticle(r.data));
   out.subs = []; out.users = []; out.outbox = []; out.revapps = [];
@@ -259,7 +259,7 @@ app.post('/api/login', wrap(async (req, res) => {
   const r = await db.q('SELECT * FROM users WHERE lower(email)=$1', [email]);
   const u = r.rows[0];
   if (!u || !auth.checkPw(req.body.password || '', u.pw)) return bad(res, email === 'admin' ? 'Wrong password.' : 'Wrong email or password.', 401);
-  await auth.createSession(res, u.id);
+  await auth.createSession(res, u.id); auth.setCookie(res, 'jsid_admin', '', 0);
   res.json({ user: auth.publicUser(u) });
 }));
 app.post('/api/logout', wrap(async (req, res) => { await auth.destroySession(req, res); res.json({ ok: 1 }); }));
@@ -315,6 +315,72 @@ app.post('/api/users/:id/reset', auth.requireAdmin, wrap(async (req, res) => {
   if (!r.rowCount) return bad(res, 'No such user.', 404);
   await db.q('DELETE FROM sessions WHERE uid=$1', [req.params.id]);
   res.json({ tmp });
+}));
+
+/* ---- admin: set a password, change role, open a user's dashboard ---- */
+app.post('/api/users/:id/password', auth.requireAdmin, wrap(async (req, res) => {
+  const n = String(req.body.password || '');
+  if (n.length < 6) return bad(res, 'Password needs 6+ characters.');
+  const r = await db.q("UPDATE users SET pw=$2 WHERE id=$1 AND role<>'admin' RETURNING id", [req.params.id, auth.hashPw(n)]);
+  if (!r.rowCount) return bad(res, 'No such user.', 404);
+  await db.q('DELETE FROM sessions WHERE uid=$1', [req.params.id]);
+  res.json({ ok: 1 });
+}));
+app.post('/api/users/:id/role', auth.requireAdmin, wrap(async (req, res) => {
+  const role = String(req.body.role || '');
+  if (!['author', 'reviewer', 'editor'].includes(role)) return bad(res, 'Invalid role.');
+  const r = await db.q("UPDATE users SET role=$2 WHERE id=$1 AND role<>'admin' RETURNING *", [req.params.id, role]);
+  if (!r.rowCount) return bad(res, 'No such user.', 404);
+  res.json({ user: auth.publicUser(r.rows[0]) });
+}));
+app.post('/api/admin/become/:id', auth.requireAdmin, wrap(async (req, res) => {
+  const t = (await db.q('SELECT * FROM users WHERE id=$1', [req.params.id])).rows[0];
+  if (!t || t.role === 'admin') return bad(res, 'No such user.', 404);
+  const adminSid = req.cookies.jsid;
+  auth.setCookie(res, 'jsid_admin', adminSid, 8 * 3600); // the admin session is kept; "Return to admin" restores it
+  await auth.createSession(res, t.id);
+  console.log(`[admin] ${req.user.email} opened the dashboard of ${t.email}`);
+  res.json({ user: auth.publicUser(t) });
+}));
+app.post('/api/admin/return', wrap(async (req, res) => {
+  const a = req.cookies.jsid_admin;
+  const r = a ? (await db.q("SELECT u.* FROM sessions s JOIN users u ON u.id=s.uid WHERE s.sid=$1 AND s.exp>now() AND u.role='admin'", [a])).rows[0] : null;
+  if (!r) return bad(res, 'Admin session expired. Please log in again.', 401);
+  if (req.cookies.jsid && req.cookies.jsid !== a) await db.q('DELETE FROM sessions WHERE sid=$1', [req.cookies.jsid]);
+  auth.setCookie(res, 'jsid', a, 30 * 86400); auth.setCookie(res, 'jsid_admin', '', 0);
+  res.json({ user: auth.publicUser(r) });
+}));
+
+/* ---- forgotten password: e-mailed link, valid 30 minutes ---- */
+const tokHash = (t) => crypto.createHash('sha256').update(String(t)).digest('hex');
+app.post('/api/password/forgot', wrap(async (req, res) => {
+  const email = String(req.body.email || '').trim().toLowerCase();
+  if (!U.allow('pwf:' + req.ip, 6, 3600e3) || !U.allow('pwf:' + email, 3, 3600e3)) return bad(res, 'Too many requests. Please try again later.', 429);
+  const u = EMAIL_RE.test(email) ? (await db.q('SELECT * FROM users WHERE lower(email)=$1', [email])).rows[0] : null;
+  if (u) {
+    const S = await getSettings(); const tok = crypto.randomBytes(24).toString('hex');
+    const all = await db.kvGet('pwreset', {}); const now = Date.now();
+    Object.keys(all).forEach((k) => { if (all[k].exp < now || all[k].uid === u.id) delete all[k]; });
+    all[tokHash(tok)] = { uid: u.id, exp: now + 30 * 60e3 }; await db.kvSet('pwreset', all);
+    const link = `${SITE}/#/login/reset/${tok}`;
+    const body = `Dear ${u.name},\n\nWe received a request to reset the password of your ${S.short} account.\n\nRESET DETAILS\nLogin ID   : ${u.email}\nReset link : ${link}\nValid for  : 30 minutes\n\nOpen the link and choose a new password. If you did not ask for this, ignore this e-mail: your password will not change.\n\n--\nThis is an automated response. Please write to ${S.email} for any query.\n`;
+    const rec = { id: U.uid(), to: u.email.toLowerCase(), toName: u.name, subject: `Reset your password - ${S.short}`, body, att: '', subId: '', date: new Date().toISOString(), sent: false, auto: true, status: mailer.configured ? 'sending' : 'queued' };
+    await db.q('INSERT INTO outbox(id,data) VALUES ($1,$2) ON CONFLICT (id) DO NOTHING', [rec.id, JSON.stringify(rec)]);
+    if (mailer.configured) deliver(rec.id).catch((e) => console.warn('[mail]', e.message));
+  }
+  res.json({ ok: 1 }); // same answer whether or not the e-mail is registered
+}));
+app.post('/api/password/reset', wrap(async (req, res) => {
+  const tok = String(req.body.token || ''); const n = String(req.body.password || '');
+  if (!U.allow('pwr:' + req.ip, 20, 3600e3)) return bad(res, 'Too many attempts. Please try again later.', 429);
+  if (n.length < 6) return bad(res, 'The new password needs at least 6 characters.');
+  const all = await db.kvGet('pwreset', {}); const k = tokHash(tok); const x = all[k];
+  if (!x || x.exp < Date.now()) return bad(res, 'This reset link has expired or was already used. Please ask for a new one.', 400);
+  delete all[k]; await db.kvSet('pwreset', all);
+  await db.q('UPDATE users SET pw=$2 WHERE id=$1', [x.uid, auth.hashPw(n)]);
+  await db.q('DELETE FROM sessions WHERE uid=$1', [x.uid]);
+  await auth.createSession(res, x.uid);
+  res.json({ user: auth.publicUser((await db.q('SELECT * FROM users WHERE id=$1', [x.uid])).rows[0]) });
 }));
 
 /* ---- settings ---- */
@@ -563,7 +629,7 @@ app.post('/api/outbox/:id/mark', auth.requireStaff, wrap(async (req, res) => {
 app.delete('/api/outbox/:id', auth.requireStaff, wrap(async (req, res) => { await db.q('DELETE FROM outbox WHERE id=$1', [req.params.id]); res.json({ ok: 1 }); }));
 app.post('/api/mail-test', auth.requireAdmin, wrap(async (req, res) => {
   const S = await getSettings();
-  try { await mailer.send({ to: S.email, subject: S.short + ' test email', body: 'This is a test email from the journal server.\n\nIf you can read this, outgoing e-mail is working.\n\nWith regards,', html: emailHtml({ subject: S.short + ' test email', body: 'This is a test email from the journal server.\n\nIf you can read this, outgoing e-mail is working.\n\nWith regards,' }, S, SITE), from: `"${S.short}" <${S.email}>` }); res.json({ ok: 1 }); }
+  try { await mailer.send({ to: S.email, subject: S.short + ' test email', body: 'This is a test email from the journal server.\n\nIf you can read this, outgoing e-mail is working.\n', html: emailHtml({ subject: S.short + ' test email', body: 'This is a test email from the journal server.\n\nIf you can read this, outgoing e-mail is working.\n' }, S, SITE), from: `"${S.short}" <${S.email}>` }); res.json({ ok: 1 }); }
   catch (e) { bad(res, e.message, 400); }
 }));
 
