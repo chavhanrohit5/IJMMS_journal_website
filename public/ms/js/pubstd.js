@@ -7,7 +7,7 @@
    article record. Empty identifiers print as grey placeholders, never as
    invented values. Loaded after articles2.js, so it replaces printHTML.
    ========================================================================== */
-var PUB_TPL='pubstd-2026-11-21q';
+var PUB_TPL='pubstd-2026-11-21r';
 if(typeof DEFAULTS!=='undefined'){if(!('pdfTemplate' in DEFAULTS))DEFAULTS.pdfTemplate='context';if(!('pdfHeader' in DEFAULTS))DEFAULTS.pdfHeader='citation';if(!('website' in DEFAULTS))DEFAULTS.website='';if(!('editorName' in DEFAULTS))DEFAULTS.editorName='';}
 
 function pubBrand(){return JID==='ls'
@@ -118,10 +118,10 @@ printHTML=function(a){
  '.pubstd .h-mast .mline{display:flex;justify-content:space-between;font:7.6pt '+SANS+';color:'+B.p+';letter-spacing:.3pt}',
  '.pubstd .h-type{text-align:center;font:bold 9.5pt '+SANS+';letter-spacing:3pt;text-transform:uppercase;color:#9b1c1c;margin:3.5mm 0 1.5mm}',
  '.pubstd .idstrip.c{justify-content:center;gap:1mm 6mm}',
- '.pubstd .h-cite{display:grid;grid-template-columns:27mm 1fr auto;align-items:center;column-gap:5mm}.pubstd .h-cite .lg img.circ{width:27mm;height:27mm;display:block}',
+ '.pubstd .h-cite{display:grid;grid-template-columns:27mm 1fr auto;align-items:center;column-gap:3.5mm}.pubstd .h-cite .lg img.circ{width:27mm;height:27mm;display:block}',
  '.pubstd .h-cite .nmw{text-align:center}.pubstd .h-cite .nmw{display:flex;align-items:center;justify-content:center;height:27mm}.pubstd .h-cite .nmw img{height:21mm;width:auto;max-width:100%;display:block}',
- '.pubstd .h-cite .wtxt{display:inline-block;text-align:center;font-family:"Crimson Pro JL",'+F+';font-weight:800;letter-spacing:-.015em;word-spacing:-.04em}.pubstd .h-cite .wtxt span{display:block;white-space:nowrap;color:#00123A;font-size:'+(JID==='ls'?'16pt':'15pt')+';line-height:1.05}.pubstd .h-cite .wtxt span+span{color:'+(JID==='ls'?'#0A6E6A':'#006557')+';font-size:'+(JID==='ls'?'18.5pt':'17pt')+';line-height:1.05}.pubstd .h-cite .wtxt i{display:flex;align-items:center;gap:1.2mm;margin:1.4mm auto 0;width:100%}.pubstd .h-cite .wtxt i:before,.pubstd .h-cite .wtxt i:after{content:"";flex:1;height:.45mm;background:#00123A}.pubstd .h-cite .wtxt i b{display:block;width:24mm;height:1.4mm;background:linear-gradient(90deg,'+(JID==='ls'?'#0A6E6A':'#006557')+',#0E8C80);transform:skewX(-35deg)}',
- '.pubstd .h-cite .cr{text-align:right;font:7.2pt/1.45 '+SANS+';color:#333;white-space:nowrap}.pubstd .h-cite .ty{font:bold 11pt '+SANS+';letter-spacing:1.5pt;text-transform:uppercase;color:#9b1c1c;margin-bottom:1mm}.pubstd .h-cite .cl{font:bold 8pt '+SANS+';color:'+B.p+';margin-bottom:.6mm}.pubstd .h-cite .is b{color:'+B.p+'}',
+ '.pubstd .h-cite .wtxt{display:inline-block;text-align:center;font-family:"Crimson Pro JL",'+F+';font-weight:800;letter-spacing:-.015em;word-spacing:-.04em}.pubstd .h-cite .wtxt span{display:block;white-space:nowrap;color:#00123A;font-size:'+(JID==='ls'?'18pt':'17pt')+';line-height:1.05}.pubstd .h-cite .wtxt span+span{color:'+(JID==='ls'?'#0A6E6A':'#006557')+';font-size:'+(JID==='ls'?'21pt':'19.5pt')+';line-height:1.05}.pubstd .h-cite .wtxt i{display:flex;align-items:center;gap:1.2mm;margin:1.4mm auto 0;width:100%}.pubstd .h-cite .wtxt i:before,.pubstd .h-cite .wtxt i:after{content:"";flex:1;height:.45mm;background:#00123A}.pubstd .h-cite .wtxt i b{display:block;width:24mm;height:1.4mm;background:linear-gradient(90deg,'+(JID==='ls'?'#0A6E6A':'#006557')+',#0E8C80);transform:skewX(-35deg)}',
+ '.pubstd .h-cite .cr{text-align:right;font:7.2pt/1.45 '+SANS+';color:#333;white-space:nowrap}.pubstd .h-cite .ty{font:bold 10pt '+SANS+';letter-spacing:1.2pt;text-transform:uppercase;color:#9b1c1c;margin-bottom:1mm}.pubstd .h-cite .cl{font:bold 8pt '+SANS+';color:'+B.p+';margin-bottom:.6mm}.pubstd .h-cite .is b{color:'+B.p+'}',
  '.pubstd .h-band{display:flex;align-items:center;gap:5mm;background:'+B.p+';padding:2.5mm 4mm;border-bottom:1.4mm solid '+B.g+';margin-bottom:1.8mm}.pubstd .h-band .plate{background:#fff;border-radius:1.5mm;padding:1.2mm 2.5mm}.pubstd .h-band .plate img{height:15mm;width:auto;display:block}',
  '.pubstd .h-band .bn{flex:1;text-align:center;font:bold 16pt/1.15 '+F+';color:#fff;text-wrap:balance}.pubstd .h-band .bn small{display:block;font:bold 8pt '+SANS+';letter-spacing:1.6pt;color:#f1d58a;margin-top:1mm}',
  '.pubstd .divider{height:1.6mm;background:linear-gradient(90deg,'+B.p+' 0 72%,'+B.a+' 72% 90%,'+B.g+' 90%);margin:2mm 0 1.6mm}',
