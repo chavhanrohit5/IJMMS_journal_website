@@ -53,7 +53,8 @@ function publicSettings(S, staff) {
 /* ---------------- article persistence ---------------- */
 const HEAVY = ['sections', 'refs', 'figures', 'ack', 'funding', 'coi', 'ethics', 'data', 'contrib', 'consent', 'reg', 'supp', 'abv'];
 const lightArticle = (a) => { const o = { ...a, _light: true }; HEAVY.forEach((k) => { if (k === 'figures') o.figures = (a.figures || []).map((f) => ({ caption: f.caption || '', wide: !!f.wide })); else if (k === 'sections') o.sections = []; else o[k] = ''; }); o.nfig = (a.figures || []).length; return o; };
-const contentHash = (a, S) => U.sha1(JSON.stringify({ ...a, views: 0, downloads: 0, _light: undefined, S: [S.name, S.abbr, S.publisher, S.issnP, S.issnO, S.license, S.apcApproved, S.doiPrefix] }));
+const PUB_TPL = 'pubstd-2026-11-21'; // bump when public/*/js/pubstd.js changes the printed layout
+const contentHash = (a, S) => U.sha1(JSON.stringify({ ...a, views: 0, downloads: 0, _light: undefined, T: PUB_TPL, S: [S.name, S.abbr, S.short, S.publisher, S.issnP, S.issnO, S.license, S.apcApproved, S.doiPrefix, S.freq, S.website, S.address, S.email, S.editorName] }));
 
 function saveFigures(a) {
   (a.figures || []).forEach((f, i) => {
@@ -76,12 +77,57 @@ async function saveArticle(a) {
     a = merged;
   }
   delete a._light; delete a.nfig;
+  const wasPublished = !!(ex.rows[0] && ex.rows[0].data && ex.rows[0].data.status === 'published');
+  const prevCert = ex.rows[0] && ex.rows[0].data && ex.rows[0].data.certIssued;
+  if (prevCert && !a.certIssued) a.certIssued = prevCert;
+  const issueCerts = a.status === 'published' && !a.certIssued && !wasPublished;
+  if (issueCerts) a.certIssued = new Date().toISOString();
   saveFigures(a);
   a.title = String(a.title || '').slice(0, 1000);
   await db.q(`INSERT INTO articles(id,status,pub,data,updated) VALUES ($1,$2,$3,$4,now())
     ON CONFLICT (id) DO UPDATE SET status=$2,pub=$3,data=$4,updated=now()`, [a.id, a.status === 'published' ? 'published' : 'draft', a.published || '', JSON.stringify(a)]);
   if (a.status === 'published') warmPdf(a.id).catch((e) => console.warn('[pdf]', e.message));
+  if (issueCerts) publicationMail(a).catch((e) => console.warn('[cert]', e.message));
   return a;
+}
+
+/* ---------------- certificates of publication ---------------- */
+const authorsOf = (a) => String(a.authorsRaw || '').split('\n').map((l) => l.trim()).filter(Boolean).map((l) => { const p = l.split('|').map((x) => x.trim()); return { name: p[0], aff: p[1] || '' }; });
+const safeName = (s) => String(s || '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'author';
+async function certPdf(a, n) { // n = 0-based author index, or null for all authors in one file
+  const au = authorsOf(a);
+  const f = path.join(os_tmp(), `cert-${U.uid()}.pdf`);
+  await renderPdf(localUrl('cert', `${a.id}~${n == null ? 'all' : n + 1}`), f);
+  const buf = fs.readFileSync(f); fs.rmSync(f, { force: true });
+  const S = await getSettings();
+  const who = n == null ? 'all-authors' : safeName(au[n] && au[n].name);
+  return { filename: `Certificate-of-Publication-${S.short}-${who}.pdf`, content: buf, contentType: 'application/pdf' };
+}
+async function publicationMail(a) {
+  const S = await getSettings();
+  let to = '', toName = '', ref = '';
+  if (a.subId) {
+    const s = (await db.q('SELECT data FROM subs WHERE id=$1', [a.subId])).rows[0];
+    if (s) {
+      ref = s.data.ref || '';
+      const u = s.data.authorId ? (await db.q('SELECT * FROM users WHERE id=$1', [s.data.authorId])).rows[0] : null;
+      to = (u && u.email) || s.data.authorEmail || ''; toName = (u && u.name) || s.data.authorName || '';
+    }
+  }
+  if (!to) { const m = String(a.corr || '').match(/[^\s,;<>()]+@[^\s,;<>()]+\.[A-Za-z]{2,}/); if (m) { to = m[0]; toName = String(a.corr).split(',')[0].trim(); } }
+  if (!to) { console.log(`[cert] ${a.id}: no corresponding-author e-mail; certificates are available in Admin.`); return; }
+  const au = authorsOf(a);
+  const link = `${SITE}/article/${a.id}`;
+  const cite = `${S.abbr} ${a.year};${a.vol}(${a.issue})${a.pages ? ':' + a.pages : ''}`;
+  const body = `Dear ${toName || 'Author'},\n\nWe are delighted to inform you that your article has been published online.\n\n`
+    + `Title    : ${a.title}\nCitation : ${cite}\n${a.doi ? 'DOI      : ' + a.doi + '\n' : ''}Link     : ${link}\n\n`
+    + `Certificates of Publication for ${au.length > 1 ? 'all ' + au.length + ' authors are' : 'the author is'} attached to this e-mail (one PDF per author). `
+    + `Please forward them to your co-authors. Each certificate can be verified online using the QR code printed on it, and can be downloaded again at any time from your submission page.\n\n`
+    + `Please share the article link with your colleagues. Thank you for publishing with ${S.short}.\n\n`
+    + `With regards,\n${S.editorName ? S.editorName + '\n' : ''}${S.editorTitle || 'Editorial Office'}\n${S.name} (${S.short})\n${S.publisher}${S.address ? ', ' + S.address : ''}\n${S.email}\n`;
+  const rec = { id: U.uid(), to: to.toLowerCase(), toName, subject: `${ref ? '[' + ref + '] ' : ''}Your article is now published - Certificate of Publication`, body, att: 'cert', subId: a.subId || '', artId: a.id, date: new Date().toISOString(), sent: false, auto: false, status: mailer.configured ? 'sending' : 'queued' };
+  await db.q('INSERT INTO outbox(id,data) VALUES ($1,$2) ON CONFLICT (id) DO NOTHING', [rec.id, JSON.stringify(rec)]);
+  if (mailer.configured) await deliver(rec.id);
 }
 
 /* ---------------- PDFs ---------------- */
@@ -123,6 +169,16 @@ const os_tmp = () => require('os').tmpdir();
 
 /* ---------------- mail queue ---------------- */
 async function attachmentsFor(m) {
+  if (m.att === 'cert' && m.artId) {
+    if (!findChrome()) return [];
+    const r = (await db.q('SELECT data FROM articles WHERE id=$1', [m.artId])).rows[0];
+    if (!r) return [];
+    const out = [];
+    for (let i = 0; i < authorsOf(r.data).length; i++) {
+      try { out.push(await certPdf(r.data, i)); } catch (e) { console.warn('[mail] certificate failed:', e.message); }
+    }
+    return out;
+  }
   if (!m.att || !m.subId) return [];
   if (!findChrome()) return [];
   const kind = { ack: 'ack', accept: 'accept', revack: 'revack', revappoint: 'revappoint', cf: 'cf' }[m.att];
@@ -516,8 +572,13 @@ const SHELL_FILE = () => path.join(PUBLIC, 'index.html');
 app.get('/render/:kind/:id', wrap(async (req, res) => {
   const { kind, id } = req.params;
   if (!renderTokenOk(kind, id, req.query.t)) return res.status(403).send('Forbidden');
-  const S = await getSettings(); const D = { kind, settings: publicSettings(S, true), users: [] };
+  const S = await getSettings(); const D = { kind, settings: publicSettings(S, true), users: [], site: SITE };
   if (kind === 'article') { const r = (await db.q('SELECT data FROM articles WHERE id=$1', [id])).rows[0]; if (!r) return res.status(404).send('Not found'); D.article = r.data; }
+  else if (kind === 'cert') {
+    const [aid, n] = String(id).split('~');
+    const r = (await db.q('SELECT data FROM articles WHERE id=$1', [aid])).rows[0]; if (!r) return res.status(404).send('Not found');
+    D.article = r.data; D.certN = n === 'all' ? null : Number(n) - 1;
+  }
   else if (['ack', 'accept', 'cf'].includes(kind)) {
     const r = (await db.q('SELECT data FROM subs WHERE id=$1', [id])).rows[0]; if (!r) return res.status(404).send('Not found'); D.sub = r.data;
     const au = (await db.q('SELECT * FROM users WHERE id=$1', [D.sub.authorId])).rows[0]; if (au) D.users = [auth.publicUser(au)];
@@ -546,6 +607,34 @@ app.get('/article/:id/pdf', wrap(async (req, res) => {
   try { file = await articlePdfFile(id); } catch (e) { return res.status(503).send('PDF generation is unavailable: ' + e.message); }
   res.setHeader('Content-Type', 'application/pdf'); res.setHeader('Content-Disposition', `inline; filename="${nm}"`);
   fs.createReadStream(file).pipe(res);
+}));
+app.get('/article/:id/certificate/:n', wrap(async (req, res) => {
+  const id = req.params.id; if (!ID_RE.test(id)) return res.status(404).send('Not found');
+  const r = (await db.q("SELECT data FROM articles WHERE id=$1 AND status='published'", [id])).rows[0];
+  if (!r) return res.status(404).send('Not found');
+  const a = r.data; const au = authorsOf(a);
+  let ok = auth.isStaff(req.user);
+  if (!ok && req.user && a.subId) { const s = (await db.q('SELECT data FROM subs WHERE id=$1', [a.subId])).rows[0]; ok = !!(s && s.data.authorId === req.user.id); }
+  if (!ok) return res.status(403).send('Please log in as the submitting author or as editorial staff to download certificates.');
+  const n = req.params.n === 'all' ? null : parseInt(req.params.n, 10) - 1;
+  if (n != null && !(n >= 0 && n < au.length)) return res.status(404).send('Not found');
+  let file;
+  try { file = await certPdf(a, n); } catch (e) { return res.status(503).send('PDF generation is unavailable: ' + e.message); }
+  res.setHeader('Content-Type', 'application/pdf'); res.setHeader('Content-Disposition', `inline; filename="${file.filename}"`);
+  res.send(file.content);
+}));
+app.get('/verify/:id/:n', wrap(async (req, res) => {
+  const id = req.params.id; const n = parseInt(req.params.n, 10) - 1;
+  const S = await getSettings();
+  const r = ID_RE.test(id) ? (await db.q("SELECT data FROM articles WHERE id=$1 AND status='published'", [id])).rows[0] : null;
+  const au = r ? authorsOf(r.data) : []; const x = au[n];
+  const e = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const certNo = r && x ? `${S.short}/CERT/${r.data.year}/${String(r.data.artno || r.data.id).replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 12)}-${String(n + 1).padStart(2, '0')}` : '';
+  const body = r && x
+    ? `<h1 style="color:#0E7C7B">&#10004; Valid certificate</h1><p>Certificate No. <b>${e(certNo)}</b></p><table cellpadding="6"><tr><td>Author</td><td><b>${e(x.name)}</b>${x.aff ? '<br>' + e(x.aff) : ''}</td></tr><tr><td>Article</td><td>${e(r.data.title)}</td></tr><tr><td>Journal</td><td>${e(S.name)} (${e(S.short)}), Volume ${e(r.data.vol)}, Issue ${e(r.data.issue)}, ${e(r.data.year)}</td></tr><tr><td>Published</td><td>${e(r.data.published)}</td></tr><tr><td>DOI</td><td>${r.data.doi ? e(r.data.doi) : 'to be assigned'}</td></tr></table><p><a href="/article/${e(id)}">Read the article</a></p>`
+    : '<h1 style="color:#9b1c1c">Certificate not found</h1><p>This certificate could not be verified. Please contact the editorial office.</p>';
+  res.setHeader('Cache-Control', 'no-store');
+  res.status(r && x ? 200 : 404).send(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Certificate verification | ${e(S.short)}</title></head><body style="font-family:Arial,sans-serif;max-width:720px;margin:40px auto;padding:0 16px;color:#1c2530"><p style="color:#5f6b7a">${e(S.name)} &middot; ${e(S.publisher)}</p>${body}<p style="color:#5f6b7a;font-size:13px;margin-top:30px">Questions: ${e(S.email)}</p></body></html>`);
 }));
 app.get('/article/:id', wrap(async (req, res) => {
   const r = (await db.q("SELECT data FROM articles WHERE id=$1 AND status='published'", [req.params.id])).rows[0];
