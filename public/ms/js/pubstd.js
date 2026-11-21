@@ -7,7 +7,7 @@
    article record. Empty identifiers print as grey placeholders, never as
    invented values. Loaded after articles2.js, so it replaces printHTML.
    ========================================================================== */
-var PUB_TPL='pubstd-2026-11-21f';
+var PUB_TPL='pubstd-2026-11-21g';
 if(typeof DEFAULTS!=='undefined'){if(!('pdfTemplate' in DEFAULTS))DEFAULTS.pdfTemplate='standard';if(!('website' in DEFAULTS))DEFAULTS.website='';if(!('editorName' in DEFAULTS))DEFAULTS.editorName='';}
 
 function pubBrand(){return JID==='ls'
@@ -104,10 +104,10 @@ printHTML=function(a){
  '@media screen{html{background:#d7dce2}body.pubstd{max-width:210mm;margin:0 auto;padding:10mm 12mm;background:#fff;box-shadow:0 0 14px rgba(0,0,0,.25)}}',
  '@media print{.pubstd .toolbar{display:none}}',
  /* publication-information header */
- '.pubstd .pihead{display:grid;grid-template-columns:52mm 1fr 52mm;align-items:center;gap:4mm;min-height:13mm;max-height:16mm}',
- '.pubstd .pihead .lg{background:#fff;padding:0}.pubstd .pihead .lg img{display:block;max-width:52mm;max-height:15mm;width:auto;height:auto}',
+ '.pubstd .pihead{display:flex;justify-content:space-between;align-items:center;gap:6mm;min-height:19mm}',
+ '.pubstd .pihead .lg{background:#fff;padding:0;flex:0 1 auto}.pubstd .pihead .lg img{display:block;height:20mm;max-width:110mm;width:auto}.pubstd .pihead .lg .jt{font:bold 15pt/1.15 '+F+';color:'+B.p+'}',
  '.pubstd .pihead .nm{text-align:center;font:bold 12.5pt/1.15 '+F+';color:'+B.p+'}.pubstd .pihead .nm small{display:block;font:bold 8.5pt '+SANS+';letter-spacing:1.2pt;color:'+B.a+';margin-top:.8mm}',
- '.pubstd .pihead .ids{font:6.9pt/1.32 '+SANS+';color:#333;text-align:right;white-space:nowrap}.pubstd .pihead .ids b{color:'+B.p+';font-weight:bold}',
+ '.pubstd .pihead .ids{flex:0 0 auto;font:7.2pt/1.4 '+SANS+';color:#333;text-align:right;white-space:nowrap;border-left:.8pt solid '+B.g+';padding-left:4mm}.pubstd .pihead .ids b{color:'+B.p+';font-weight:bold}',
  '.pubstd .divider{height:1.6mm;background:linear-gradient(90deg,'+B.p+' 0 72%,'+B.a+' 72% 90%,'+B.g+' 90%);margin:2mm 0 1.6mm}',
  '.pubstd .catline{display:flex;justify-content:space-between;font:8pt '+SANS+';margin-bottom:4mm}.pubstd .catline .cat{font-weight:bold;color:#9b1c1c;text-transform:uppercase;letter-spacing:.7pt}',
  /* first page 90 + 90 */
@@ -156,8 +156,8 @@ printHTML=function(a){
   +'<br><b>Web:</b> '+(pubHost()?'<a href="'+esc(pubSite())+'">'+esc(pubHost())+'</a>':pubPh('','www.example.com'))
   +'<br><b>Frequency:</b> '+pubPh(S.freq,'Quarterly / Biannual')
   +'<br><b>Volume '+esc(a.vol)+' / Issue '+esc(a.issue)+' / '+esc(a.year)+'</b>';
- var head='<div class="pihead"><div class="lg">'+(pubLogo()?'<img src="'+pubLogo()+'" alt="'+esc(S.name)+'">':'')+'</div>'
-  +'<div class="nm">'+esc(S.name)+'<small>'+esc(S.short)+'</small></div><div class="ids">'+ids+'</div></div>'
+ var head='<div class="pihead"><div class="lg">'+(pubLogo()?'<img src="'+pubLogo()+'" alt="'+esc(S.name)+' ('+esc(S.short)+')">':'<div class="jt">'+esc(S.name)+' ('+esc(S.short)+')</div>')+'</div>'
+  +'<div class="ids">'+ids+'</div></div>'
   +'<div class="divider"></div>'
   +'<div class="catline"><span class="cat">'+esc(a.type||'Original Research')+'</span><span><b>Article DOI:</b> '+(a.doi?'<a href="https://doi.org/'+esc(a.doi)+'">'+esc(a.doi)+'</a>':'<span class="ps-ph">to be assigned</span>')+'</span></div>';
 
@@ -189,7 +189,7 @@ printHTML=function(a){
      +'<div class="abs"><h2>Abstract</h2>'+absBody+pubAbsTail(a)+kwHtml+'</div></div>'
     :T==='context'
     ?'<div class="tblock"><h1 class="title">'+esc(a.title)+'</h1>'+subt+'<div class="authors">'+al+'</div>'+affHtml+corrHtml+'</div>'
-     +'<div class="fp"><div class="abs"><h2>Summary</h2>'+absBody+pubAbsTail(a)+kwHtml+'</div>'
+     +'<div class="fp"><div class="abs"><h2>Abstract</h2>'+absBody+pubAbsTail(a)+kwHtml+'</div>'
      +'<div class="left">'+pubContext(a)+'<div class="info2">'+metaBox.replace('class="meta"','class="meta" style="margin-top:0;border-top:0;padding-top:0"')+citeBox+oaBox+'</div></div></div>'
     :'<div class="fp">'+left+right+'</div>')
   +'<hr class="rule">'
