@@ -17,6 +17,9 @@ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&':
 
 /* banner for each kind of message, chosen from the subject */
 const KINDS = [
+  [/payment received/i, '✅', 'Payment received – thank you', '#1e7d32'],
+  [/payment reported/i, '💳', 'APC payment reported', '#0E7C7B'],
+  [/apc payment (request|reminder)/i, '💳', 'APC payment', '#B8860B'],
   [/reset your password/i, '🔑', 'Reset your password', '#0D2B4E'],
   [/welcome|login details|account/i, '👋', 'Welcome! Your account is ready', C.teal],
   [/manuscript received/i, '📨', 'Manuscript received', C.teal],
@@ -35,7 +38,7 @@ const KINDS = [
   [/test email/i, '✅', 'Test e-mail', C.teal],
   [/reset your password/i, '🔑', 'Reset your password', C.navy],
 ];
-const HEAD_ICON = [[/LOGIN/, '🔐'], [/JOURNEY|PROGRESS/, '🧭'], [/NEXT STEP/, '➡️'], [/EDITOR/, '📝'], [/REVIEWER COMMENT/, '💬'], [/RESUBMIT|HOW TO/, '🔁'], [/ACCEPT/, '🎉'], [/SUBMISSION|DETAILS/, '📄'], [/APC|CHARGE|PAYMENT/, '💳']];
+const HEAD_ICON = [[/APC|PAY|CHARGE/, '💳'], [/LOGIN/, '🔐'], [/JOURNEY|PROGRESS/, '🧭'], [/NEXT STEP/, '➡️'], [/EDITOR/, '📝'], [/REVIEWER COMMENT/, '💬'], [/RESUBMIT|HOW TO/, '🔁'], [/ACCEPT/, '🎉'], [/SUBMISSION|DETAILS/, '📄'], [/APC|CHARGE|PAYMENT/, '💳']];
 
 function inline(t) { // escape, then bold / links / reference numbers / quoted titles
   let h = esc(t);
@@ -49,7 +52,7 @@ function inline(t) { // escape, then bold / links / reference numbers / quoted t
 const P = (h) => `<p style="margin:0 0 14px;${FONT};font-size:15px;line-height:1.6;color:${C.ink}">${h}</p>`;
 function heading(t) {
   const ic = (HEAD_ICON.find(([re]) => re.test(t)) || [0, '📌'])[1];
-  const label = t.charAt(0) + t.slice(1).toLowerCase().replace(/\bapc\b/g, 'APC').replace(/\bdoi\b/g, 'DOI');
+  const label = (t.charAt(0) + t.slice(1).toLowerCase()).replace(/\bapc\b/gi, 'APC').replace(/\bdoi\b/gi, 'DOI');
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0 10px"><tr><td style="${FONT};font-size:16px;font-weight:bold;color:${C.navy};padding:0 0 6px;border-bottom:2px solid ${C.gold}">${ic}&nbsp; ${esc(label)}</td></tr></table>`;
 }
 function kvTable(rows, box) {
@@ -104,6 +107,7 @@ function parse(body) {
 
 function firstUrl(body) {
   const login = String(body).match(/Login page\s*:\s*(https?:\/\/\S+)/i); if (login) return [login[1], 'Log in to your dashboard'];
+  const pay = String(body).match(/Pay online\s*:\s*(https?:\/\/\S+)/i); if (pay) return [pay[1], 'Pay APC online'];
   const rs = String(body).match(/Reset link\s*:\s*(https?:\/\/\S+)/i); if (rs) return [rs[1], 'Set a new password'];
   const link = String(body).match(/Link\s*:\s*(https?:\/\/\S+)/i); if (link) return [link[1], 'Read your article'];
   return null;
