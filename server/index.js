@@ -594,6 +594,9 @@ app.post('/api/admin/clear-pdf-cache', auth.requireAdmin, wrap(async (req, res) 
 
 /* ---- render pages used by headless Chrome (token protected) ---- */
 const SHELL_FILE = () => path.join(PUBLIC, 'index.html');
+/* every restart (= every deploy) gets a new asset version, so browsers and Cloudflare fetch fresh JS/CSS */
+const ASSET_V = Date.now().toString(36);
+const verAssets = (html) => html.replace(/(src|href)="(\/?)(js|css)\/([\w.-]+\.(?:js|css))"/g, `$1="$2$3/$4?v=${ASSET_V}"`);
 app.get('/render/:kind/:id', wrap(async (req, res) => {
   const { kind, id } = req.params;
   if (!renderTokenOk(kind, id, req.query.t)) return res.status(403).send('Forbidden');
@@ -667,7 +670,8 @@ app.get('/article/:id', wrap(async (req, res) => {
   const S = await getSettings(); const a = r.data;
   const html = fs.readFileSync(SHELL_FILE(), 'utf8');
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.send(seo.injectShell(html, seo.articleHead(a, S, SITE), seo.articleFallback(a, S), `${a.title} | ${S.abbr}`));
+  res.setHeader('Cache-Control', 'no-cache');
+  res.send(verAssets(seo.injectShell(html, seo.articleHead(a, S, SITE), seo.articleFallback(a, S), `${a.title} | ${S.abbr}`)));
 }));
 app.get('/sitemap.xml', wrap(async (req, res) => {
   const rows = (await db.q("SELECT data FROM articles WHERE status='published' ORDER BY pub DESC")).rows.map((r) => r.data);
@@ -682,6 +686,15 @@ app.get('/oai', wrap(async (req, res) => {
 app.get('/healthz', wrap(async (req, res) => { await db.q('SELECT 1'); res.json({ ok: 1, journal: JOURNAL }); }));
 
 /* ---- static front end ---- */
+app.use((req, res, next) => { // HTML pages: versioned asset links, never cached stale
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+  let n = decodeURIComponent(req.path).replace(/^\/+/, '') || 'index.html';
+  if (!/\.html$/.test(n)) { if (n.includes('.')) return next(); n += '.html'; }
+  if (n.includes('..') || n.includes('/')) return next();
+  const f = path.join(PUBLIC, n); if (!fs.existsSync(f)) return next();
+  res.setHeader('Content-Type', 'text/html; charset=utf-8'); res.setHeader('Cache-Control', 'no-cache');
+  res.send(verAssets(fs.readFileSync(f, 'utf8')));
+});
 app.use(express.static(PUBLIC, { extensions: ['html'], maxAge: '1h' }));
 app.use((req, res) => res.status(404).sendFile(path.join(PUBLIC, '404.html')));
 app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
