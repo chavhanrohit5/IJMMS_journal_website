@@ -42,4 +42,22 @@ function defaultsFor(journal) {
 }
 const SECRET_KEYS = ['pwHash', 'defaultPw', 'ejsService', 'ejsTemplate', 'ejsKey'];
 
-module.exports = { loadEnv, uid, sha1, xesc, hesc, safeKey, allow, ensureDir, defaultsFor, SECRET_KEYS };
+/* ---- issue list (admin-managed, stored in settings.issuesCfg) ---- */
+const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const BIM = ['Jan–Feb', 'Mar–Apr', 'May–Jun', 'Jul–Aug', 'Sep–Oct', 'Nov–Dec'];
+function defaultIssues(j) {
+  const L = [];
+  if (j === 'ls') { // Volume 1 = 2026 (from 1 Nov), then 1st and 15th of every month
+    [[1, 10, 1], [2, 10, 15], [3, 11, 1], [4, 11, 15]].forEach(([n, m, d], i) => L.push({ y: 2026, n, v: 1, d: `2026-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`, p: `${d} ${MON[m]} 2026`, vis: i < 2 ? 1 : 0, sp: '' }));
+    for (let k = 0; k < 24; k++) { const m = Math.floor(k / 2), d = k % 2 ? 15 : 1; L.push({ y: 2027, n: k + 1, v: 2, d: `2027-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`, p: `${d} ${MON[m]} 2027`, vis: 0, sp: '' }); }
+  } else { // bi-monthly, Volume = year - 2016
+    L.push({ y: 2026, n: 6, v: 10, d: '2026-11-01', p: 'Nov–Dec 2026', vis: 1, sp: '' });
+    for (let n = 1; n <= 6; n++) L.push({ y: 2027, n, v: 11, d: `2027-${String(2 * n - 1).padStart(2, '0')}-01`, p: `${BIM[n - 1]} 2027`, vis: 0, sp: '' });
+  }
+  return L;
+}
+function issuesOf(S) { try { const L = JSON.parse(S.issuesCfg || 'null'); if (Array.isArray(L)) return L; } catch (e) { /* fall through */ } return []; }
+/* an article is public only if it is published AND its issue is listed and switched to "shown on site" */
+function artPublic(S, a) { if (!a || a.status !== 'published') return false; const x = issuesOf(S).find((i) => +i.y === +a.year && +i.n === +a.issue); return !!(x && +x.vis); }
+
+module.exports = { defaultIssues, issuesOf, artPublic, loadEnv, uid, sha1, xesc, hesc, safeKey, allow, ensureDir, defaultsFor, SECRET_KEYS };

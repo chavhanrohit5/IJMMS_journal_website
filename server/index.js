@@ -226,7 +226,7 @@ app.get('/api/bootstrap', wrap(async (req, res) => {
   const S = await getSettings();
   const out = { settings: publicSettings(S, staff), me: u ? auth.publicUser(u) : null, flags: { server: true, smtp: mailer.configured, pdf: !!findChrome(), journal: JOURNAL } };
   const ar = await db.q(staff ? 'SELECT data FROM articles' : "SELECT data FROM articles WHERE status='published'");
-  out.articles = ar.rows.map((r) => lightArticle(r.data));
+  out.articles = ar.rows.filter((r) => staff || U.artPublic(S, r.data)).map((r) => lightArticle(r.data));
   out.subs = []; out.users = []; out.outbox = []; out.revapps = [];
   if (staff) {
     out.subs = (await db.q('SELECT data FROM subs ORDER BY updated DESC')).rows.map((r) => r.data);
@@ -246,7 +246,7 @@ app.get('/api/bootstrap', wrap(async (req, res) => {
 }));
 app.get('/api/articles/:id', wrap(async (req, res) => {
   const r = await db.q('SELECT data,status FROM articles WHERE id=$1', [req.params.id]);
-  if (!r.rows[0] || (r.rows[0].status !== 'published' && !auth.isStaff(req.user))) return bad(res, 'Not found.', 404);
+  if (!r.rows[0] || (!auth.isStaff(req.user) && !U.artPublic(await getSettings(), r.rows[0].data))) return bad(res, 'Not found.', 404);
   res.json(r.rows[0].data);
 }));
 
@@ -457,8 +457,8 @@ async function canReadFile(key, f, u) {
     const s = (await db.q('SELECT author_id,reviewer_id FROM subs WHERE id=$1', [subOf(key)])).rows[0];
     return s ? (s.author_id === u.id || s.reviewer_id === u.id) : f.owner === u.id;
   }
-  const a = (await db.q('SELECT status FROM articles WHERE id=$1', [key])).rows[0];
-  return !!a && (a.status === 'published' || auth.isStaff(u));
+  const a = (await db.q('SELECT data FROM articles WHERE id=$1', [key])).rows[0];
+  return !!a && (auth.isStaff(u) || U.artPublic(await getSettings(), a.data));
 }
 app.get('/api/files/:key', wrap(async (req, res) => {
   const key = req.params.key;
@@ -564,7 +564,7 @@ app.post('/api/mail-test', auth.requireAdmin, wrap(async (req, res) => {
 async function doiArticles(req) {
   const S = await getSettings();
   let rows = (await db.q("SELECT data FROM articles WHERE status='published' ORDER BY pub")).rows.map((r) => r.data);
-  rows = rows.filter((a) => seo.realDoi(a, S));
+  rows = rows.filter((a) => seo.realDoi(a, S) && U.artPublic(S, a));
   if (req.query.year) rows = rows.filter((a) => String(a.year) === String(req.query.year));
   if (req.query.issue) rows = rows.filter((a) => String(a.issue) === String(req.query.issue));
   return { S, rows };
@@ -624,7 +624,7 @@ app.get('/render/:kind/:id', wrap(async (req, res) => {
 app.get('/article/:id/pdf', wrap(async (req, res) => {
   const id = req.params.id; if (!ID_RE.test(id)) return res.status(404).send('Not found');
   const r = (await db.q('SELECT data,status FROM articles WHERE id=$1', [id])).rows[0];
-  if (!r || (r.status !== 'published' && !auth.isStaff(req.user))) return res.status(404).send('Not found');
+  if (!r || (!auth.isStaff(req.user) && !U.artPublic(await getSettings(), r.data))) return res.status(404).send('Not found');
   const a = r.data;
   const nm = (a.doi ? a.doi.replace(/[\/\\]/g, '_') : id) + '.pdf';
   if (a.hasPdf) {
@@ -639,7 +639,7 @@ app.get('/article/:id/pdf', wrap(async (req, res) => {
 app.get('/article/:id/certificate/:n', wrap(async (req, res) => {
   const id = req.params.id; if (!ID_RE.test(id)) return res.status(404).send('Not found');
   const r = (await db.q("SELECT data FROM articles WHERE id=$1 AND status='published'", [id])).rows[0];
-  if (!r) return res.status(404).send('Not found');
+  if (!r || (!auth.isStaff(req.user) && !U.artPublic(await getSettings(), r.data))) return res.status(404).send('Not found');
   const a = r.data; const au = authorsOf(a);
   let ok = auth.isStaff(req.user);
   if (!ok && req.user && a.subId) { const s = (await db.q('SELECT data FROM subs WHERE id=$1', [a.subId])).rows[0]; ok = !!(s && s.data.authorId === req.user.id); }
@@ -654,7 +654,8 @@ app.get('/article/:id/certificate/:n', wrap(async (req, res) => {
 app.get('/verify/:id/:n', wrap(async (req, res) => {
   const id = req.params.id; const n = parseInt(req.params.n, 10) - 1;
   const S = await getSettings();
-  const r = ID_RE.test(id) ? (await db.q("SELECT data FROM articles WHERE id=$1 AND status='published'", [id])).rows[0] : null;
+  let r = ID_RE.test(id) ? (await db.q("SELECT data FROM articles WHERE id=$1 AND status='published'", [id])).rows[0] : null;
+  if (r && !U.artPublic(S, r.data)) r = null;
   const au = r ? authorsOf(r.data) : []; const x = au[n];
   const e = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const certNo = r && x ? `${S.short}/CERT/${r.data.year}/${String(r.data.artno || r.data.id).replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 12)}-${String(n + 1).padStart(2, '0')}` : '';
@@ -666,21 +667,23 @@ app.get('/verify/:id/:n', wrap(async (req, res) => {
 }));
 app.get('/article/:id', wrap(async (req, res) => {
   const r = (await db.q("SELECT data FROM articles WHERE id=$1 AND status='published'", [req.params.id])).rows[0];
-  if (!r) return res.status(404).sendFile(path.join(PUBLIC, '404.html'));
-  const S = await getSettings(); const a = r.data;
+  const S = await getSettings();
+  if (!r || (!U.artPublic(S, r.data) && !auth.isStaff(req.user))) return res.status(404).sendFile(path.join(PUBLIC, '404.html'));
+  const a = r.data;
   const html = fs.readFileSync(SHELL_FILE(), 'utf8');
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
   res.send(verAssets(seo.injectShell(html, seo.articleHead(a, S, SITE), seo.articleFallback(a, S), `${a.title} | ${S.abbr}`)));
 }));
 app.get('/sitemap.xml', wrap(async (req, res) => {
-  const rows = (await db.q("SELECT data FROM articles WHERE status='published' ORDER BY pub DESC")).rows.map((r) => r.data);
+  const S0 = await getSettings();
+  const rows = (await db.q("SELECT data FROM articles WHERE status='published' ORDER BY pub DESC")).rows.map((r) => r.data).filter((a) => U.artPublic(S0, a));
   res.type('application/xml').send(seo.sitemap(rows, SITE));
 }));
 app.get('/robots.txt', (req, res) => res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /render/\nSitemap: ${SITE}/sitemap.xml\n`));
 app.get('/oai', wrap(async (req, res) => {
   const S = await getSettings();
-  const rows = (await db.q("SELECT data FROM articles WHERE status='published' ORDER BY pub")).rows.map((r) => r.data);
+  const rows = (await db.q("SELECT data FROM articles WHERE status='published' ORDER BY pub")).rows.map((r) => r.data).filter((a) => U.artPublic(S, a));
   res.type('text/xml').send(seo.oai(req, rows, S, SITE));
 }));
 app.get('/healthz', wrap(async (req, res) => { await db.q('SELECT 1'); res.json({ ok: 1, journal: JOURNAL }); }));
@@ -713,11 +716,17 @@ async function ensureAdmin() {
   if (generated) { fs.writeFileSync(path.join(DATA, 'admin-initial-password.txt'), `Login: admin\nPassword: ${pw}\nChange it in Admin > Settings, then delete this file.\n`, { mode: 0o600 }); console.log(`[setup] Admin account created. Initial password saved in ${path.join(DATA, 'admin-initial-password.txt')}`); }
   else console.log('[setup] Admin account created with the ADMIN_PASSWORD from .env');
 }
+const LS_CFP = '2026-11-21 | Call for papers: Volume 1, Issues 3 and 4 (December 2026) | IJMLS publishes on the 1st and 15th of every month. It invites original research articles, review articles, systematic reviews and meta-analyses, short communications and letters to the editor across the life sciences for Volume 1, Issue 3 (1 December 2026), Issue 4 (15 December 2026) and Volume 2 (2027). Accepted manuscripts are published in the next available issue. Every manuscript undergoes double-blind peer review.';
 async function start() {
   await db.init();
   { // one-time content fix: drop 'submission is free' wording from saved texts
     const st = await db.kvGet('settings', {}); let ch = false;
     Object.keys(st).forEach((k) => { if (typeof st[k] !== 'string' || !/ubmission is free/.test(st[k])) return; st[k] = st[k].replace(/Submission is free and every manuscript undergoes/g, 'Every manuscript undergoes').replace(/(Manuscript )?[Ss]ubmission is free( of charge)?[.;]? ?/g, ''); ch = true; });
+    if (!st.issuesCfg) { st.issuesCfg = JSON.stringify(U.defaultIssues(JOURNAL)); ch = true; }
+    if (JOURNAL === 'ls') {
+      if (st.freq === 'Bi-monthly') { st.freq = 'Semi-monthly'; ch = true; }
+      if (typeof st.announcements === 'string' && st.announcements.includes('Volume 1, Issue 1 (January-February 2027)')) { st.announcements = st.announcements.split('\n').filter((l) => !l.includes('Volume 1, Issue 1 (January-February 2027)')).concat([LS_CFP]).join('\n').trim(); ch = true; }
+    }
     if (ch) await db.kvSet('settings', st);
   }
   await ensureAdmin();
