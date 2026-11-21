@@ -53,8 +53,8 @@ function publicSettings(S, staff) {
 /* ---------------- article persistence ---------------- */
 const HEAVY = ['sections', 'refs', 'figures', 'ack', 'funding', 'coi', 'ethics', 'data', 'contrib', 'consent', 'reg', 'supp', 'abv'];
 const lightArticle = (a) => { const o = { ...a, _light: true }; HEAVY.forEach((k) => { if (k === 'figures') o.figures = (a.figures || []).map((f) => ({ caption: f.caption || '', wide: !!f.wide })); else if (k === 'sections') o.sections = []; else o[k] = ''; }); o.nfig = (a.figures || []).length; return o; };
-const PUB_TPL = 'pubstd-2026-11-21e'; // bump when public/*/js/pubstd.js changes the printed layout
-const contentHash = (a, S) => U.sha1(JSON.stringify({ ...a, views: 0, downloads: 0, _light: undefined, T: PUB_TPL, S: [S.name, S.abbr, S.short, S.publisher, S.issnP, S.issnO, S.license, S.apcApproved, S.doiPrefix, S.freq, S.website, S.address, S.email, S.editorName] }));
+const PUB_TPL = 'pubstd-2026-11-21f'; // bump when public/*/js/pubstd.js changes the printed layout
+const contentHash = (a, S) => U.sha1(JSON.stringify({ ...a, views: 0, downloads: 0, _light: undefined, T: PUB_TPL, S: [S.name, S.abbr, S.short, S.publisher, S.issnP, S.issnO, S.license, S.apcApproved, S.doiPrefix, S.freq, S.website, S.address, S.email, S.editorName, S.pdfTemplate] }));
 
 function saveFigures(a) {
   (a.figures || []).forEach((f, i) => {
@@ -148,10 +148,16 @@ async function articlePdfFile(id) {
   const a = r.rows[0].data; const S = await getSettings();
   const f = path.join(PDFS, `${id}-${contentHash(a, S).slice(0, 16)}.pdf`);
   if (fs.existsSync(f)) return f;
-  await renderPdf(localUrl('article', id), f);
-  fs.readdirSync(PDFS).filter((n) => n.startsWith(id + '-') && path.join(PDFS, n) !== f).forEach((n) => fs.rmSync(path.join(PDFS, n), { force: true }));
-  return f;
+  if (!rendering.has(f)) { // one render per file, even if a download arrives while the publish-time render is running
+    rendering.set(f, (async () => {
+      await renderPdf(localUrl('article', id), f);
+      fs.readdirSync(PDFS).filter((n) => n.startsWith(id + '-') && path.join(PDFS, n) !== f).forEach((n) => fs.rmSync(path.join(PDFS, n), { force: true }));
+      return f;
+    })().finally(() => rendering.delete(f)));
+  }
+  return rendering.get(f);
 }
+const rendering = new Map();
 const warming = new Set();
 async function warmPdf(id) {
   if (warming.has(id) || !findChrome()) return;

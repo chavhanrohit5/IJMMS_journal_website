@@ -1,7 +1,7 @@
 /* Used only by the server's headless Chrome (PDF generation): builds the requested document from server data. */
 (function(){
  var D=window.__RD||{};
- S={};var st=D.settings||{};for(var k in DEFAULTS)S[k]=(st[k]!==undefined)?st[k]:DEFAULTS[k];['website','editorName','editorTitle','scope','nmc'].forEach(function(k){if(st[k]!==undefined)S[k]=st[k];});
+ S={};var st=D.settings||{};for(var k in DEFAULTS)S[k]=(st[k]!==undefined)?st[k]:DEFAULTS[k];['website','editorName','editorTitle','scope','nmc','pdfTemplate'].forEach(function(k){if(st[k]!==undefined)S[k]=st[k];});
  USERS=D.users||[];ARTS=D.article?[D.article]:[];SUBS=D.sub?[D.sub]:[];REVAPPS=D.revapp?[D.revapp]:[];
  var h='';if(D.site)window.__SITE=D.site;
  if(D.kind==='article'){var a=D.article;(a.figures||[]).forEach(function(f){if(f.data&&f.data.charAt(0)==='/')f.data=location.origin+f.data;});h=printHTML(a);}
