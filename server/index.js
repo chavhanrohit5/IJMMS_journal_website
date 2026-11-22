@@ -6,6 +6,7 @@ const express = require('express');
 
 const U = require('./util');
 const { emailHtml } = require('./email');
+const rzp = require('./razorpay');
 const ROOT = path.join(__dirname, '..');
 U.loadEnv(path.resolve(ROOT, process.env.ENV_FILE || '.env'));
 
@@ -217,7 +218,7 @@ app.use((req, res, next) => {
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   next();
 });
-app.use(express.json({ limit: '60mb' }));
+app.use(express.json({ limit: '60mb', verify: (req, res, buf) => { if (req.originalUrl.startsWith('/api/razorpay/')) req.rawBody = buf; } }));
 app.use(auth.attach);
 app.use('/api', auth.csrf);
 app.use('/media', express.static(MEDIA, { maxAge: '30d', immutable: true }));
@@ -226,7 +227,7 @@ app.use('/media', express.static(MEDIA, { maxAge: '30d', immutable: true }));
 app.get('/api/bootstrap', wrap(async (req, res) => {
   const u = req.user; const staff = auth.isStaff(u);
   const S = await getSettings();
-  const out = { settings: publicSettings(S, staff), me: u ? auth.publicUser(u) : null, flags: { server: true, smtp: mailer.configured, pdf: !!findChrome(), journal: JOURNAL, imp: !!(u && req.cookies.jsid_admin && u.role !== 'admin') } };
+  const out = { settings: publicSettings(S, staff), me: u ? auth.publicUser(u) : null, flags: { server: true, smtp: mailer.configured, pdf: !!findChrome(), journal: JOURNAL, imp: !!(u && req.cookies.jsid_admin && u.role !== 'admin'), rzp: rzp.configured(), rzpHook: rzp.webhookOn() } };
   const ar = await db.q(staff ? 'SELECT data FROM articles' : "SELECT data FROM articles WHERE status='published'");
   out.articles = ar.rows.filter((r) => staff || U.artPublic(S, r.data)).map((r) => lightArticle(r.data));
   out.subs = []; out.users = []; out.outbox = []; out.revapps = [];
@@ -457,6 +458,10 @@ app.put('/api/subs/:id', auth.requireAuth, wrap(async (req, res) => {
       s = { ...cur }; if (inc.review) s.review = inc.review; if (Array.isArray(inc.history)) s.history = inc.history; s.status = 'Under review';
     } else return bad(res, 'Not allowed.', 403);
     if (Array.isArray(s.history) && Array.isArray(cur.history) && s.history.length < cur.history.length) s.history = cur.history;
+    if (cur.pay && cur.pay.link) { // the Razorpay link is managed only by the server; a stale editor copy must not undo a confirmed payment
+      s.pay = { ...(s.pay || cur.pay), link: cur.pay.link };
+      if (cur.pay.link.status === 'paid' && cur.pay.status === 'Paid' && !['Paid', 'Waived'].includes(s.pay.status)) Object.assign(s.pay, { status: 'Paid', ref: cur.pay.ref, paidOn: cur.pay.paidOn });
+    }
     s.authorId = cur.authorId; if (!auth.isStaff(u)) s.reviewerId = cur.reviewerId || '';
   }
   const clash = s.ref ? (await db.q('SELECT id FROM subs WHERE ref=$1 AND id<>$2', [s.ref, id])).rows[0] : null;
@@ -468,6 +473,76 @@ app.put('/api/subs/:id', auth.requireAuth, wrap(async (req, res) => {
     notifyOffice(S, s, ex ? 'revised' : 'new').catch((e) => console.warn('[mail] office notice:', e.message));
   }
 }));
+/* ---------------- Razorpay Payment Links (keys only in the server .env) ---------------- */
+const saveSubData = (s) => db.q('UPDATE subs SET data=$2, updated=now() WHERE id=$1', [s.id, JSON.stringify(s)]);
+const rzpAmt = (p) => (p.cur === 'USD' ? '$' : '₹') + Number(p.amount || 0).toLocaleString('en-IN');
+function rzpContact(s, user) {
+  const list = (s.fmt && Array.isArray(s.fmt.authors)) ? s.fmt.authors : [];
+  const a = list.find((x) => x && x.corr) || list[0] || {};
+  let ph = String(a.phone || (user && user.phone) || '').replace(/[^\d+]/g, '');
+  if (/^\d{10}$/.test(ph)) ph = '+91' + ph; else if (/^91\d{10}$/.test(ph)) ph = '+' + ph; else if (/^0\d{10}$/.test(ph)) ph = '+91' + ph.slice(1);
+  return { name: String(s.authorName || a.name || 'Author').slice(0, 100), email: String(s.authorEmail || a.email || '').toLowerCase(), contact: /^\+\d{10,15}$/.test(ph) ? ph : '' };
+}
+async function queueSys(rec) {
+  Object.assign(rec, { id: U.uid(), date: new Date().toISOString(), sent: false, auto: true, att: rec.att || '', status: mailer.configured ? 'sending' : 'queued' });
+  await db.q('INSERT INTO outbox(id,data) VALUES ($1,$2) ON CONFLICT (id) DO NOTHING', [rec.id, JSON.stringify(rec)]);
+  if (mailer.configured) await deliver(rec.id);
+}
+async function rzpMarkPaid(s, payId, how) {
+  const S = await getSettings(); const p = s.pay = s.pay || {}; const was = p.status;
+  p.link = { ...(p.link || {}), status: 'paid', paidAt: new Date().toISOString() };
+  if (was === 'Paid') { await saveSubData(s); return false; }
+  Object.assign(p, { status: 'Paid', ref: payId || p.ref || '', paidOn: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }), via: 'razorpay' });
+  s.history = s.history || []; s.history.push({ d: p.paidOn, t: `APC payment: Paid online via Razorpay${payId ? ' (' + payId + ')' : ''}${how ? ' - ' + how : ''}` });
+  await saveSubData(s);
+  const sig = `\n--\nThis is an automated response. Please write to ${S.email} for any query.\n`;
+  if (s.authorEmail) await queueSys({ to: s.authorEmail.toLowerCase(), toName: s.authorName || 'Author', subId: s.id, subject: `[${s.ref}] Payment received - ${S.short}`,
+    body: `Dear ${s.authorName || 'Author'},\n\nThank you. We have received the article processing charge for your manuscript. Your article now moves to production.\n\nPAYMENT DETAILS\nReference no.  : ${s.ref}\nTitle          : ${s.title || '-'}\nAmount         : ${rzpAmt(p)}\nPayment ID     : ${p.ref || '-'}\nDate received  : ${p.paidOn}\nStatus         : Paid\n${sig}` });
+  if (S.email && EMAIL_RE.test(S.email)) await queueSys({ to: S.email.toLowerCase(), toName: `${S.short} Editorial Office`, subId: s.id, subject: `[${s.ref}] APC paid online - ${S.short}`,
+    body: `An APC payment was received through the Razorpay payment link and the submission was marked as Paid automatically.\n\nPAYMENT RECEIVED\nReference no. : ${s.ref}\nTitle         : ${s.title || '-'}\nAuthor        : ${s.authorName || '-'} (${s.authorEmail || '-'})\nAmount        : ${rzpAmt(p)}\nPayment ID    : ${p.ref || '-'}\nOpen in admin panel : ${SITE}/#/sub/${s.id}\n` });
+  return true;
+}
+app.post('/api/subs/:id/rzp-link', auth.requireStaff, wrap(async (req, res) => {
+  if (!rzp.configured()) return bad(res, 'Razorpay keys are not set on the server yet.');
+  const r = (await db.q('SELECT data FROM subs WHERE id=$1', [req.params.id])).rows[0]; if (!r) return bad(res, 'Submission not found.', 404);
+  const s = r.data; const S = await getSettings(); const p = s.pay = s.pay || { status: 'Due', cur: 'INR' };
+  const b = req.body || {}; if (b.amount != null) p.amount = Math.max(0, Number(b.amount) || 0); if (b.cur) p.cur = b.cur === 'USD' ? 'USD' : 'INR';
+  if (p.status === 'Paid' || p.status === 'Waived') return bad(res, `The payment is already ${p.status.toLowerCase()}.`);
+  const amount = Math.round(Number(p.amount || 0) * 100); if (amount < 100) return bad(res, 'Set the APC amount first.');
+  if (p.link && p.link.id && p.link.status !== 'paid') { try { await rzp.cancelLink(p.link.id); } catch (e) { /* already expired or cancelled */ } }
+  const owner = s.authorId ? (await db.q('SELECT email,name,extra FROM users WHERE id=$1', [s.authorId])).rows[0] : null;
+  const c = rzpContact(s, owner ? { phone: (owner.extra || {}).phone || '' } : null);
+  if (!c.email && owner) c.email = String(owner.email || '').toLowerCase();
+  const customer = { name: c.name }; if (EMAIL_RE.test(c.email)) customer.email = c.email; if (c.contact) customer.contact = c.contact;
+  const lk = await rzp.createLink({ amount, currency: p.cur || 'INR', accept_partial: false, reference_id: (String(s.ref || s.id).replace(/[^A-Za-z0-9/-]/g, '') + '-' + Date.now().toString(36)).slice(-40),
+    description: `${S.short} APC - ${s.ref}`.slice(0, 2048), customer, notify: { sms: !!customer.contact, email: !!customer.email }, reminder_enable: true,
+    notes: { submission: s.id, ref: String(s.ref || ''), journal: S.short }, callback_url: `${SITE}/#/sub/${s.id}`, callback_method: 'get' });
+  p.link = { id: lk.id, short_url: lk.short_url, status: lk.status || 'created', created: new Date().toISOString(), sms: !!customer.contact, email: !!customer.email, to: customer.contact || '' };
+  s.history = s.history || []; s.history.push({ d: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }), t: `Razorpay payment link sent (${rzpAmt(p)}${customer.contact ? ', SMS to ' + customer.contact : ''})` });
+  await saveSubData(s); res.json({ ok: 1, sub: s });
+}));
+app.post('/api/subs/:id/rzp-status', auth.requireStaff, wrap(async (req, res) => {
+  if (!rzp.configured()) return bad(res, 'Razorpay keys are not set on the server yet.');
+  const r = (await db.q('SELECT data FROM subs WHERE id=$1', [req.params.id])).rows[0]; if (!r) return bad(res, 'Submission not found.', 404);
+  const s = r.data; const p = s.pay || {}; if (!p.link || !p.link.id) return bad(res, 'No Razorpay link has been sent for this manuscript.');
+  const lk = await rzp.fetchLink(p.link.id); let paidNow = false;
+  if (lk.status === 'paid') { const pays = Array.isArray(lk.payments) ? lk.payments : []; const pid = (pays.find((x) => x.status === 'captured') || pays[0] || {}).payment_id || ''; paidNow = await rzpMarkPaid(s, pid, 'status checked'); }
+  else { p.link.status = lk.status; p.link.checked = new Date().toISOString(); await saveSubData(s); }
+  res.json({ ok: 1, sub: s, status: lk.status, paidNow });
+}));
+app.post('/api/razorpay/webhook', wrap(async (req, res) => {
+  if (!rzp.verifyWebhook(req.rawBody, req.headers['x-razorpay-signature'])) return res.status(400).json({ error: 'Bad signature.' });
+  const ev = req.body || {};
+  if (ev.event === 'payment_link.paid') {
+    const lk = ev.payload && ev.payload.payment_link && ev.payload.payment_link.entity; const pm = ev.payload && ev.payload.payment && ev.payload.payment.entity;
+    if (lk && lk.id) {
+      const r = (await db.q("SELECT data FROM subs WHERE data->'pay'->'link'->>'id'=$1", [lk.id])).rows[0];
+      if (r) await rzpMarkPaid(r.data, pm && pm.id, 'webhook');
+    }
+  }
+  res.json({ ok: 1 });
+}));
+
 /* e-mail to the editorial office when an author submits a new or revised manuscript */
 async function notifyOffice(S, s, kind) {
   if (!S.email || !EMAIL_RE.test(S.email)) return;

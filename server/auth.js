@@ -68,6 +68,7 @@ module.exports = function createAuth(db, cfg) {
   /* CSRF: every state-changing request must carry the custom header (cannot be set cross-site without CORS) */
   function csrf(req, res, next) {
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+    if (req.method === 'POST' && req.path === '/razorpay/webhook') return next(); // signed by Razorpay (HMAC), checked in the route
     if (req.headers['x-requested-with'] !== 'ijmms') return res.status(403).json({ error: 'Bad request origin.' });
     next();
   }

@@ -18,7 +18,11 @@ function payOf(s){if(!s.pay)s.pay=payDefault(s);return s.pay;}
 function payAmt(p){return (p.cur==='USD'?'$':'₹')+Number(p.amount||0).toLocaleString('en-IN');}
 function payPill(st){var c={Due:'#B8860B',Reported:'#0E7C7B',Paid:'#1e7d32',Waived:'#5b6b7c'}[st]||'#5b6b7c';return '<span class="paypill" style="background:'+c+'">'+esc(st==='Reported'?'Payment reported':st==='Due'?'Payment due':st)+'</span>';}
 /* text block used in e-mails (rendered as a table, steps and a "Pay APC online" button) */
-function payText(s){var p=payOf(s);if(!payActive()||p.status==='Waived'||p.status==='Paid')return '';
+function rzpOn(){return typeof SRV!=='undefined'&&!!(SRV.flags&&SRV.flags.rzp);}
+function rzpLink(s){var l=s&&s.pay&&s.pay.link;return l&&l.short_url&&['created','partially_paid'].indexOf(l.status||'created')>-1?l.short_url:'';}
+function payText(s){var p=payOf(s);if(p.status==='Waived'||p.status==='Paid')return '';var rl=rzpLink(s);
+ if(rl)return 'APC PAYMENT\nAmount payable : '+payAmt(p)+'\nPay online     : '+rl+'\nPay to         : '+(S.payee||'Genosync Global Private Limited')+'\nReference      : '+ensureRef(s)+'\n\nHOW TO PAY\n1. Open the payment link (also sent to you by SMS and e-mail from Razorpay).\n2. Pay by UPI, card, net banking or wallet. The amount is already filled in.\n3. Your payment is confirmed automatically and you will receive a receipt by e-mail.\n\n';
+ if(!payActive())return '';
  return 'APC PAYMENT\nAmount payable : '+payAmt(p)+' (plus applicable taxes)\nPay online     : '+payLink()+'\nPay to         : '+(S.payee||'Genosync Global Private Limited')+'\nReference      : '+ensureRef(s)+'\n\nHOW TO PAY\n1. Open the payment link and enter the amount shown above.\n2. Write your reference number '+ensureRef(s)+' in the notes, if asked.\n3. After paying, log in to your dashboard, open this manuscript and enter the Razorpay payment ID (it starts with pay_) under "APC payment".\n\n';}
 
 /* acceptance e-mail: add the payment section and open the payment record */
@@ -40,9 +44,10 @@ function payCard(s){if(!payIsAccepted(s)&&!s.pay)return '';var p=payOf(s),adm=is
    +'<div class="row2"><div class="fg"><label>Razorpay payment ID / reference</label><input id="py-ref" value="'+esc(p.ref||'')+'" placeholder="pay_..."></div><div class="fg"><label>Note to author (shown in the payment e-mail)</label><input id="py-note" value="'+esc(p.note||'')+'"></div></div>'
    +'<div class="fg"><label>Payment screenshot / receipt (JPG, PNG or PDF)</label>'+(p.proof?'<div style="margin:2px 0 6px">'+payProofLink(s)+' <span class="pg-h">uploaded '+fmtDate(String(p.proof.at||'').slice(0,10))+(p.proof.by?' by '+esc(p.proof.by):'')+'</span></div>':'')+'<input type="file" id="py-proof" accept=".jpg,.jpeg,.png,.pdf"> <button class="btn sm ghost" type="button" data-act="payproof" data-id="'+s.id+'">'+(p.proof?'Replace':'Upload')+' screenshot</button></div>'
    +(p.reportedAt?'<p class="pg-h">Author reported payment on '+fmtDate(p.reportedAt)+(p.authorNote?': '+esc(p.authorNote):'')+'. Check it in your Razorpay dashboard, then set the status to <b>Paid</b>.</p>':'')
-   +'<button class="btn teal" data-act="paysave" data-id="'+s.id+'">Save payment</button> <button class="btn ghost" data-act="paymail" data-id="'+s.id+'">E-mail payment request</button> <button class="btn ghost" data-act="paymail" data-r="1" data-id="'+s.id+'">E-mail reminder</button>'+(lnk?' <a class="btn ghost" href="'+esc(lnk)+'" target="_blank" rel="noopener">Open payment link</a>':'');}
+   +rzpAdminBox(s)+'<button class="btn teal" data-act="paysave" data-id="'+s.id+'">Save payment</button> <button class="btn ghost" data-act="paymail" data-id="'+s.id+'">E-mail payment request</button> <button class="btn ghost" data-act="paymail" data-r="1" data-id="'+s.id+'">E-mail reminder</button>'+(lnk?' <a class="btn ghost" href="'+esc(lnk)+'" target="_blank" rel="noopener">Open payment link</a>':'');}
  else{h+='<p><b>Amount:</b> '+payAmt(p)+' <span class="pg-h">(plus applicable taxes)</span></p>';
-  if(p.status==='Due'){h+=(lnk&&payActive()?'<p><a class="btn gold" href="'+esc(lnk)+'" target="_blank" rel="noopener">Pay APC online &rarr;</a></p><ol class="paysteps"><li>Open the payment page and enter <b>'+payAmt(p)+'</b>.</li><li>Write your reference <b>'+esc(ensureRef(s))+'</b> in the notes, if asked.</li><li>After paying, enter the Razorpay payment ID below and press <b>I have paid</b>.</li></ol>':'<p>The editorial office will send you the payment details.</p>')
+  if(p.status==='Due'&&rzpLink(s)){h+='<p><a class="btn gold" href="'+esc(rzpLink(s))+'" target="_blank" rel="noopener">Pay '+payAmt(p)+' online &rarr;</a></p><p class="pg-h">Pay by UPI, card, net banking or wallet. Your payment is confirmed automatically and a receipt is e-mailed to you.</p>';}
+  else if(p.status==='Due'){h+=(lnk&&payActive()?'<p><a class="btn gold" href="'+esc(lnk)+'" target="_blank" rel="noopener">Pay APC online &rarr;</a></p><ol class="paysteps"><li>Open the payment page and enter <b>'+payAmt(p)+'</b>.</li><li>Write your reference <b>'+esc(ensureRef(s))+'</b> in the notes, if asked.</li><li>After paying, enter the Razorpay payment ID below and press <b>I have paid</b>.</li></ol>':'<p>The editorial office will send you the payment details.</p>')
     +'<div class="row2"><div class="fg"><label>Razorpay payment ID</label><input id="py-ref" placeholder="pay_..."></div><div class="fg"><label>Note (optional)</label><input id="py-anote" placeholder="e.g. paid by UPI on 25 Nov"></div></div><div class="fg"><label>Payment screenshot (optional)</label><input type="file" id="py-proof" accept=".jpg,.jpeg,.png,.pdf"></div><button class="btn" data-act="payreport" data-id="'+s.id+'">I have paid</button>';}
   else if(p.status==='Reported')h+='<p>Thank you. You reported your payment'+(p.ref?' (ID <b>'+esc(p.ref)+'</b>)':'')+' on '+fmtDate(p.reportedAt)+'. The editorial office will confirm it shortly.</p>'+(p.proof?'<p>'+payProofLink(s)+'</p>':'');
   else if(p.status==='Paid')h+='<p>✓ Payment received'+(p.paidOn?' on '+fmtDate(p.paidOn):'')+(p.ref?' (ID '+esc(p.ref)+')':'')+'. Thank you.</p>';
@@ -65,6 +70,23 @@ Object.assign(ACT,{
   try{await saveSub(s);}catch(e){toast(e.message);return;}
   queueMail(S.email,'Editorial Office','['+ensureRef(s)+'] APC payment reported by author','A payment has been reported for an accepted manuscript.\n\nPAYMENT REPORTED\nReference no. : '+ensureRef(s)+'\nTitle         : '+s.title+'\nAuthor        : '+(s.authorName||'')+' ('+(s.authorEmail||'')+')\nAmount due    : '+payAmt(p)+'\nPayment ID    : '+(ref||'-')+'\nNote          : '+(n||'-')+'\nScreenshot    : '+(p.proof?'attached in the admin panel':'-')+'\n\nCheck the payment in the Razorpay dashboard, then open the submission in the admin panel and set the payment status to Paid.\n'+sigText(),'',s.id);
   toast('Thank you. The editorial office has been informed.');route();}
+});
+
+/* ---- Razorpay Payment Links (server keeps the keys) ---- */
+var RZP_ST={created:'Sent, not paid yet',partially_paid:'Partly paid',paid:'Paid',cancelled:'Cancelled',expired:'Expired'};
+function rzpAdminBox(s){var p=payOf(s),l=p.link;if(!rzpOn())return '<p class="pg-h">Razorpay payment links (with SMS): not set up yet. The server administrator adds the Razorpay keys with <code>deploy/set-razorpay.sh</code>.</p>';
+ var h='<div class="rzpbox" style="border:1px solid #cfe3e2;background:#f4fbfa;border-radius:8px;padding:10px 12px;margin:8px 0"><b>Razorpay payment link</b> <span class="pg-h">(amount pre-filled; Razorpay sends it by SMS and e-mail'+(SRV.flags.rzpHook?'; payment is confirmed automatically':'')+')</span>';
+ if(l&&l.id)h+='<div style="margin:6px 0">Link: <a href="'+esc(l.short_url)+'" target="_blank" rel="noopener">'+esc(l.short_url)+'</a> &middot; <b>'+esc(RZP_ST[l.status]||l.status)+'</b> &middot; sent '+fmtDate(String(l.created||'').slice(0,10))+(l.sms?' &middot; SMS to '+esc(l.to):' &middot; <span style="color:#a15c00">no valid phone, SMS not sent</span>')+'</div>';
+ if(p.status!=='Paid'&&p.status!=='Waived')h+='<button class="btn sm gold" type="button" data-act="rzplink" data-id="'+s.id+'">'+(l&&l.id?'Send a new payment link':'Send Razorpay payment link (SMS + e-mail)')+'</button> ';
+ if(l&&l.id)h+='<button class="btn sm ghost" type="button" data-act="rzpcheck" data-id="'+s.id+'">Check payment status</button>';
+ return h+'</div>';}
+function rzpPut(s,ns){var i=SUBS.indexOf(s);if(i>-1)SUBS[i]=ns;else SUBS.push(ns);return ns;}
+Object.assign(ACT,{
+ rzplink:async function(t){var s=findSub(t.dataset.id);if(!s)return;var amt=$('py-amt')?Math.max(0,+$('py-amt').value||0):payOf(s).amount,cur=$('py-cur')?$('py-cur').value:payOf(s).cur;
+  if(!amt){toast('Enter the APC amount first.');return;}if(!confirm('Send a Razorpay payment link for '+(cur==='USD'?'$':'₹')+Number(amt).toLocaleString('en-IN')+' to '+(s.authorName||'the author')+' by SMS and e-mail?'))return;
+  t.disabled=true;try{var r=await api('POST','/api/subs/'+encodeURIComponent(s.id)+'/rzp-link',{amount:amt,cur:cur});s=rzpPut(s,r.sub);}catch(e){t.disabled=false;toast(e.message);return;}
+  payMailRequest(s,false);toast('Payment link sent'+(s.pay.link.sms?' by SMS to '+s.pay.link.to:'')+' and by e-mail.');route();},
+ rzpcheck:async function(t){var s=findSub(t.dataset.id);if(!s)return;t.disabled=true;try{var r=await api('POST','/api/subs/'+encodeURIComponent(s.id)+'/rzp-status');rzpPut(s,r.sub);toast(r.paidNow?'Payment received. Marked as Paid and receipt e-mailed.':'Status: '+(RZP_ST[r.status]||r.status));}catch(e){toast(e.message);}t.disabled=false;route();}
 });
 
 /* ---- Admin > Payments ---- */
