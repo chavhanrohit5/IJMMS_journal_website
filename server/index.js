@@ -54,7 +54,7 @@ function publicSettings(S, staff) {
 /* ---------------- article persistence ---------------- */
 const HEAVY = ['sections', 'refs', 'figures', 'ack', 'funding', 'coi', 'ethics', 'data', 'contrib', 'consent', 'reg', 'supp', 'abv'];
 const lightArticle = (a) => { const o = { ...a, _light: true }; HEAVY.forEach((k) => { if (k === 'figures') o.figures = (a.figures || []).map((f) => ({ caption: f.caption || '', wide: !!f.wide })); else if (k === 'sections') o.sections = []; else o[k] = ''; }); o.nfig = (a.figures || []).length; return o; };
-const PUB_TPL = 'pubstd-2026-11-21w'; // bump when public/*/js/pubstd.js changes the printed layout
+const PUB_TPL = 'pubstd-2026-11-22b'; // bump when public/*/js/pubstd.js changes the printed layout
 const contentHash = (a, S) => U.sha1(JSON.stringify({ ...a, views: 0, downloads: 0, _light: undefined, T: PUB_TPL, S: [S.name, S.abbr, S.short, S.publisher, S.issnP, S.issnO, S.license, S.apcApproved, S.doiPrefix, S.freq, S.website, S.address, S.email, S.editorName, S.pdfTemplate, S.pdfHeader] }));
 
 function saveFigures(a) {
@@ -450,7 +450,7 @@ app.put('/api/subs/:id', auth.requireAuth, wrap(async (req, res) => {
       }
       if (inc.pay && typeof inc.pay === 'object') { // authors may only report a payment; staff confirm it
         const cp = cur.pay || {}; const st = cp.status === 'Paid' || cp.status === 'Waived' ? cp.status : 'Reported';
-        s.pay = { ...cp, status: st, ref: String(inc.pay.ref || '').slice(0, 80), authorNote: String(inc.pay.authorNote || '').slice(0, 300), reportedAt: String(inc.pay.reportedAt || '').slice(0, 20), amount: cp.amount != null ? cp.amount : inc.pay.amount, cur: cp.cur || inc.pay.cur || 'INR' };
+        s.pay = { ...cp, status: st, ref: String(inc.pay.ref || '').slice(0, 80), authorNote: String(inc.pay.authorNote || '').slice(0, 300), reportedAt: String(inc.pay.reportedAt || '').slice(0, 20), proof: inc.pay.proof && typeof inc.pay.proof === 'object' ? { name: String(inc.pay.proof.name || '').slice(0, 200), at: String(inc.pay.proof.at || '').slice(0, 30), by: 'author' } : cp.proof, amount: cp.amount != null ? cp.amount : inc.pay.amount, cur: cp.cur || inc.pay.cur || 'INR' };
       }
       if (inc.ref && !cur.ref) s.ref = inc.ref;
     } else if (cur.reviewerId === u.id) {
@@ -827,6 +827,8 @@ async function start() {
       let L = []; try { L = JSON.parse(st.issuesCfg); } catch (e) { L = []; }
       if (JOURNAL === 'ms' && Array.isArray(L) && L.length === 7 && L.some((x) => +x.y === 2026 && +x.n === 6 && +x.v === 10)) { st.issuesCfg = JSON.stringify(U.defaultIssues()); ch = true; }
     }
+    if (!st.doiPrefix || /x{3,}/i.test(st.doiPrefix)) { st.doiPrefix = '10.5281'; ch = true; } // Zenodo is the DOI partner
+    if (!st.doiPartner) { st.doiPartner = 'Zenodo (CERN)'; ch = true; }
     if (st.freq === 'Semi-monthly') { st.freq = 'Bi-monthly'; ch = true; } // shown as 'Bi-monthly' (issues on the 1st and 15th)
     if (typeof st.announcements === 'string' && st.announcements.includes('publishes on the 1st and 15th of every month.')) { st.announcements = st.announcements.split('publishes on the 1st and 15th of every month.').join('is published bi-monthly, on the 1st and 15th of every month.'); ch = true; }
     { // Editor-in-Chief shown as 'Dr. Rohit Chavhan' only

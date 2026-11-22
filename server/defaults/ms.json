@@ -5,7 +5,7 @@
   "publisher": "Genosync Publications",
   "issnP": "",
   "issnO": "",
-  "doiPrefix": "10.xxxxx",
+  "doiPrefix": "10.5281",
   "license": "CC BY 4.0",
   "email": "editor@ijmms.in",
   "address": "Chhatrapati Sambhajinagar, Maharashtra, India",
@@ -56,5 +56,6 @@
   "isoCert": "",
   "ifVal": "",
   "ifSrc": "",
-  "vcOn": "1"
+  "vcOn": "1",
+  "doiPartner": "Zenodo (CERN)"
 }

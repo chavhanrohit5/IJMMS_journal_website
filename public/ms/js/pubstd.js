@@ -7,7 +7,7 @@
    article record. Empty identifiers print as grey placeholders, never as
    invented values. Loaded after articles2.js, so it replaces printHTML.
    ========================================================================== */
-var PUB_TPL='pubstd-2026-11-21w';
+var PUB_TPL='pubstd-2026-11-22b';
 if(typeof DEFAULTS!=='undefined'){if(!('pdfTemplate' in DEFAULTS))DEFAULTS.pdfTemplate='context';if(!('pdfHeader' in DEFAULTS))DEFAULTS.pdfHeader='citation';if(!('website' in DEFAULTS))DEFAULTS.website='';if(!('editorName' in DEFAULTS))DEFAULTS.editorName='';}
 
 function pubBrand(){return JID==='ls'
@@ -17,7 +17,8 @@ function pubLogo(){if(JID==='ls'&&typeof LS_LOGO_SMALL!=='undefined')return LS_L
 function pubSite(){return String(S.website||window.__SITE||location.origin||'').replace(/\/+$/,'');}
 function pubHost(){return pubSite().replace(/^https?:\/\//,'');}
 function pubArtUrl(a){return pubSite()+(window.IJMMS_SERVER?'/article/'+a.id:'/#/article/'+a.id);}
-function pubPh(v,p){return v?esc(v):'<span class="ps-ph">'+esc(p)+'</span>';}
+function pubDoiPartner(){return S.doiPartner||'';}
+function pubPh(v,p){return v?esc(v):'';}
 function pubIsSample(a){return !!(a.sample||/^sample/i.test(String(a.id||'')));}
 function pubCorrEmail(a){var m=String(a.corr||'').match(/[^\s,;<>()]+@[^\s,;<>()]+\.[A-Za-z]{2,}/);return m?m[0]:'';}
 function pubIsCorr(a,name){var c=String(a.corr||'').toLowerCase();return !!(c&&name&&c.indexOf(String(name).toLowerCase())>-1);}
@@ -57,14 +58,14 @@ function pubDeclPlus(a){var ls=JID==='ls',trial=/random|trial/i.test(String(a.ty
   [trial?'Data sharing statement':'Data availability',a.data,1],
   ['Use of AI-assisted technology',a.aiUse,1],
   ['Acknowledgements',a.ack,0],['Prior presentation',a.confPres,0],['Supplementary material',a.supp,0],['Abbreviations',a.abv,0]];
- return rows.filter(function(r){return r[0]&&(r[1]||r[2]);}).map(function(r){return '<h3>'+r[0]+'</h3><p>'+(r[1]?inl(r[1]):'<span class="ps-ph">'+(r[0]==='Use of AI-assisted technology'?'State whether AI tools were used, which, and how - or "None".':'Not stated')+'</span>')+'</p>';}).join('');}
-function pubAbsTail(a){var t='';if(a.reg)t+='<p class="abt"><b>Trial registration:</b> '+inl(a.reg)+'</p>';else if(/random|trial/i.test(String(a.type||'')+' '+String(a.design||'')))t+='<p class="abt"><b>Trial registration:</b> <span class="ps-ph">CTRI/YYYY/MM/NNNNNN</span></p>';
+ return rows.filter(function(r){return r[0]&&String(r[1]||'').trim();}).map(function(r){return '<h3>'+r[0]+'</h3><p>'+inl(r[1])+'</p>';}).join('');}
+function pubAbsTail(a){var t='';if(a.reg)t+='<p class="abt"><b>Trial registration:</b> '+inl(a.reg)+'</p>';
  if(a.funding)t+='<p class="abt"><b>Funding:</b> '+inl(a.funding)+'</p>';return t;}
-function pubKeyPoints(a){if(!pubSummaryBox(a))return '';var q=a.keyQ,f=a.keyF,m=a.keyM,ph=function(v,h){return v?inl(v):'<span class="ps-ph">'+h+'</span>';};
- return '<div class="kp"><h3>Key Points</h3><p><b>Question</b> '+ph(q,'What question did this study address?')+'</p><p><b>Findings</b> '+ph(f,'Main result, with the key number.')+'</p><p><b>Meaning</b> '+ph(m,'What the findings mean for practice.')+'</p></div>';}
+function pubKeyPoints(a){var q=a.keyQ,f=a.keyF,m=a.keyM;if(!(q||f||m))return '';
+ return '<div class="kp"><h3>Key Points</h3>'+(q?'<p><b>Question</b> '+inl(q)+'</p>':'')+(f?'<p><b>Findings</b> '+inl(f)+'</p>':'')+(m?'<p><b>Meaning</b> '+inl(m)+'</p>':'')+'</div>';}
 function pubSummaryBox(a){var t=String(a.type||'');return /^(Original Research|Systematic Review|Short Communication|Methods and Protocols|Case Series)/.test(t)||!!(a.known||a.adds||a.keyQ);}
-function pubContext(a){if(!pubSummaryBox(a))return '';var b=function(v,h){var l=String(v||'').split('\n').map(function(x){return x.trim().replace(/^[-\u2022]\s*/,'');}).filter(Boolean);return l.length?'<ul>'+l.map(function(x){return '<li>'+inl(x)+'</li>';}).join('')+'</ul>':'<p class="ps-ph">'+h+'</p>';};
- return '<div class="ric"><h3>Research in context</h3><h4>What is already known on this topic</h4>'+b(a.known,'2-3 short points on existing evidence.')+'<h4>What this study adds</h4>'+b(a.adds,'2-3 short points on the new findings.')+'<h4>How this study might affect research, practice or policy</h4>'+b(a.impl,'1-2 short points.')+'</div>';}
+function pubContext(a){var b=function(t,v){var l=String(v||'').split('\n').map(function(x){return x.trim().replace(/^[-\u2022]\s*/,'');}).filter(Boolean);return l.length?'<h4>'+t+'</h4><ul>'+l.map(function(x){return '<li>'+inl(x)+'</li>';}).join('')+'</ul>':'';};
+ var h=b('What is already known on this topic',a.known)+b('What this study adds',a.adds)+b('How this study might affect research, practice or policy',a.impl);return h?'<div class="ric"><h3>Research in context</h3>'+h+'</div>':'';}
 
 function pubDecl(a){
  var ls=JID==='ls',rows=[
@@ -80,7 +81,7 @@ function pubDecl(a){
   ['Supplementary material',a.supp,0],
   ['Abbreviations',a.abv,0]];
  if(ls&&a.reg)rows.splice(3,0,['Trial / review registration',a.reg,0]);
- return rows.filter(function(r){return r[1]||r[2];}).map(function(r){return '<h3>'+r[0]+'</h3><p>'+(r[1]?inl(r[1]):'<span class="ps-ph">Not stated</span>')+'</p>';}).join('');}
+ return rows.filter(function(r){return String(r[1]||'').trim();}).map(function(r){return '<h3>'+r[0]+'</h3><p>'+inl(r[1])+'</p>';}).join('');}
 
 printHTML=function(a){
  var B=pubBrand(),au=parseAuthors(a.authorsRaw),affs=[];
@@ -91,7 +92,7 @@ printHTML=function(a){
  var jline=S.name+' ('+S.short+') \u00b7 '+S.publisher+(S.address?' \u00b7 '+S.address:'')+(S.email?' \u00b7 '+S.email:'');
  var run=shortAuth(a)+' | '+(a.title.length>62?a.title.slice(0,59)+'...':a.title);
  var link=a.doi?'https://doi.org/'+a.doi:pubArtUrl(a);
- var cite=esc(vanc(a).replace(/\s*doi:\S+$/,''))+(a.doi?' doi:<a href="https://doi.org/'+esc(a.doi)+'">'+esc(a.doi)+'</a>':' <span class="ps-ph">doi: to be assigned</span>');
+ var cite=esc(vanc(a).replace(/\s*doi:\S+$/,''))+(a.doi?' doi:<a href="https://doi.org/'+esc(a.doi)+'">'+esc(a.doi)+'</a>':'');
  var F='"Times New Roman","Liberation Serif",Tinos,Georgia,serif',SANS='Arial,"Liberation Sans",Helvetica,sans-serif';
  var css=[
  '@font-face{font-family:"Crimson Pro JL";font-weight:800;font-style:normal;font-display:block;src:url("'+pubAsset('fonts/crimson-pro-800.woff2')+'") format("woff2")}',
@@ -174,63 +175,61 @@ printHTML=function(a){
  '.pubstd .wm{position:fixed;left:0;right:0;top:40%;text-align:center;font:bold 120pt '+SANS+';color:rgba(155,28,28,.10);transform:rotate(-32deg);letter-spacing:12pt;z-index:0;pointer-events:none}'
  ].join('\n');
 
- var ids='<span><b>P-ISSN:</b> '+pubPh(S.issnP,'XXXX-XXXX')+'</span><span><b>E-ISSN:</b> '+pubPh(S.issnO,'XXXX-XXXX')+'</span>'
-  +'<span><b>DOI prefix:</b> '+pubPh(S.doiPrefix&&!/x{3,}/i.test(S.doiPrefix)?S.doiPrefix:'','10.XXXXX')
-  +'</span><span><b>Web:</b> '+(pubHost()?'<a href="'+esc(pubSite())+'">'+esc(pubHost())+'</a>':pubPh('','www.example.com'))
-  +'</span><span><b>Frequency:</b> '+pubPh(S.freq,'Quarterly / Biannual')
+ var ids=(S.issnP?'<span><b>P-ISSN:</b> '+esc(S.issnP)+'</span>':'')+(S.issnO?'<span><b>E-ISSN:</b> '+esc(S.issnO)+'</span>':'')
+  +(pubDoiPartner()?'<span><b>DOI partner:</b> '+esc(pubDoiPartner())+'</span>':'')
+  +(pubHost()?'<span><b>Web:</b> <a href="'+esc(pubSite())+'">'+esc(pubHost())+'</a></span>':'')
+  +'<span>'+(S.freq?'<b>Frequency:</b> '+esc(S.freq):'')
   +'</span><span><b>Volume '+esc(a.vol)+' / Issue '+esc(a.issue)+' / '+esc(a.year)+'</b></span>';
  var H=pubHdr(),logo=pubLogo()?'<img src="'+pubLogo()+'" alt="'+esc(S.name)+' ('+esc(S.short)+')">':'<div class="jt">'+esc(S.name)+' ('+esc(S.short)+')</div>';
- var adoi=a.doi?'<a href="https://doi.org/'+esc(a.doi)+'">'+esc(a.doi)+'</a>':'<span class="ps-ph">to be assigned</span>';
- var citeLine=esc(S.abbr)+'. '+esc(a.year)+';'+esc(a.vol)+'('+esc(a.issue)+')'+(a.pages?':'+esc(a.pages):'')+' &middot; doi: '+adoi;
+ var adoi=a.doi?'<a href="https://doi.org/'+esc(a.doi)+'">'+esc(a.doi)+'</a>':'';
+ var citeLine=esc(S.abbr)+'. '+esc(a.year)+';'+esc(a.vol)+'('+esc(a.issue)+')'+(a.pages?':'+esc(a.pages):'')+(adoi?' &middot; doi: '+adoi:'');
  var catline='<div class="catline"><span class="cat">'+esc(a.type||'Original Research')+'</span><span><b>Article DOI:</b> '+adoi+'</span></div>';
  var head;
- if(H==='masthead')head='<div class="h-mast"><div class="lg">'+logo+'</div><div class="rules"></div><div class="mline"><span>'+esc(S.short)+' &middot; Volume '+esc(a.vol)+', Issue '+esc(a.issue)+' &middot; '+esc(a.period||a.year)+'</span><span>'+(pubHost()?esc(pubHost()):pubPh('','www.example.com'))+'</span></div></div>'
+ if(H==='masthead')head='<div class="h-mast"><div class="lg">'+logo+'</div><div class="rules"></div><div class="mline"><span>'+esc(S.short)+' &middot; Volume '+esc(a.vol)+', Issue '+esc(a.issue)+' &middot; '+esc(a.period||a.year)+'</span><span>'+(pubHost()?esc(pubHost()):'')+'</span></div></div>'
    +'<div class="h-type">'+esc(a.type||'Original Research')+'</div><div class="idstrip c">'+ids.replace(/<span><b>Volume[\s\S]*?<\/span>$/,'')+'<span><b>Article DOI:</b> '+adoi+'</span></div>';
  else if(H==='citation')head='<div class="h-cite"><div class="lg"><img class="circ" src="'+pubAsset(JID==='ls'?'logo-ls-circle.png':'logo-circle.png')+'" alt="'+esc(S.short)+' logo"></div>'
    +'<div class="nmw"><div class="wtxt"><span>International Journal of</span><span>'+(JID==='ls'?'Modern Life Sciences':'Modern Medicine &amp; Surgery')+'</span><i><b></b></i></div></div>'
    +'<div class="cr"><div class="ty">'+esc(a.type||'Original Research')+'</div>'
    +'<div class="cl">'+esc(S.abbr)+'. '+esc(a.year)+';'+esc(a.vol)+'('+esc(a.issue)+')'+(a.pages?':'+esc(a.pages):'')+'</div><div class="dl">doi: '+adoi+'</div>'
-   +'<table class="mt"><tr><th>ISSN</th><td>'+pubPh(S.issnP,'XXXX-XXXX')+' <span class="k">(Print)</span> &middot; '+pubPh(S.issnO,'XXXX-XXXX')+' <span class="k">(Online)</span></td></tr>'
-   +'<tr><th>DOI prefix</th><td>'+pubPh(S.doiPrefix&&!/x{3,}/i.test(S.doiPrefix)?S.doiPrefix:'','10.XXXXX')+'</td></tr>'
-   +'<tr><th>Web</th><td>'+(pubHost()?'<a href="'+esc(pubSite())+'">'+esc(pubHost())+'</a>':pubPh('','www.example.com'))+'</td></tr>'
-   +'<tr><th>Frequency</th><td>'+pubPh(S.freq,'Quarterly / Biannual')+'</td></tr></table></div></div>'
+   +'<table class="mt">'+((S.issnP||S.issnO)?'<tr><th>ISSN</th><td>'+[S.issnP?esc(S.issnP)+' <span class="k">(Print)</span>':'',S.issnO?esc(S.issnO)+' <span class="k">(Online)</span>':''].filter(Boolean).join(' &middot; ')+'</td></tr>':'')
+   +(pubDoiPartner()?'<tr><th>DOI partner</th><td>'+esc(pubDoiPartner())+'</td></tr>':'')
+   +(pubHost()?'<tr><th>Web</th><td><a href="'+esc(pubSite())+'">'+esc(pubHost())+'</a></td></tr>':'')
+   +(S.freq?'<tr><th>Frequency</th><td>'+esc(S.freq)+'</td></tr>':'')+'</table></div></div>'
    +'<div class="divider" style="margin-top:3mm"></div><div style="height:2.5mm"></div>';
  else if(H==='band')head='<div class="h-band"><div class="plate">'+logo+'</div><div class="bn">'+esc(S.name)+'<small>'+esc(S.short)+' &middot; '+(pubHost()?esc(pubHost()):'www.example.com')+'</small></div></div><div class="idstrip">'+ids+'</div>'+catline;
  else head='<div class="pihead"><div class="lg">'+logo+'</div>'
   +'<div class="nm">'+esc(S.name)+'<small>'+esc(S.short)+'</small></div></div>'
   +'<div class="divider"></div><div class="idstrip">'+ids+'</div>'+catline;
 
- var dates='<b>Received</b> '+pubPh(pubDate(a.received),'dd Month yyyy')+'<br><b>Revised</b> '+pubPh(pubDate(a.revised),'dd Month yyyy')
-  +'<br><b>Accepted</b> '+pubPh(pubDate(a.accepted),'dd Month yyyy')+'<br><b>Published</b> '+pubPh(pubDate(a.published),'dd Month yyyy')
-  +(pubPages(a)?'<br><b>Pages</b> '+esc(pubPages(a).replace(/^pp\. /,'')):'');
- var corrHtml=a.corr?'<div class="corr"><sup>*</sup><b>Corresponding author:</b> '+esc(a.corr).replace(/([^\s,;<>()]+@[^\s,;<>()]+\.[A-Za-z]{2,})/,'<a href="mailto:$1">$1</a>')+'</div>':'<div class="corr"><sup>*</sup><b>Corresponding author:</b> <span class="ps-ph">name, e-mail</span></div>';
+ var dates=[['Received',pubDate(a.received)],['Revised',pubDate(a.revised)],['Accepted',pubDate(a.accepted)],['Published',pubDate(a.published)],['Pages',pubPages(a)?pubPages(a).replace(/^pp\. /,''):'']].filter(function(x){return x[1];}).map(function(x){return '<b>'+x[0]+'</b> '+esc(x[1]);}).join('<br>');
+ var corrHtml=a.corr?'<div class="corr"><sup>*</sup><b>Corresponding author:</b> '+esc(a.corr).replace(/([^\s,;<>()]+@[^\s,;<>()]+\.[A-Za-z]{2,})/,'<a href="mailto:$1">$1</a>')+'</div>':'';
  var left='<div class="left"><h1 class="title">'+esc(a.title)+'</h1><div class="authors">'+al+'</div>'
   +'<div class="affs">'+affs.map(function(f,i){return '<sup>'+(i+1)+'</sup>'+esc(f);}).join('<br>')+'</div>'+corrHtml
   +'<div class="meta"><div>'+pubQr(link,22)+'<div class="qrnote">Scan to read online</div></div><div class="dates">'+dates+'</div></div>'
   +'<div class="box"><h4>How to cite</h4>'+cite+'</div>'
   +'<div class="oa"><b>Open access.</b> &copy; '+esc(a.year)+' The authors. Published by '+esc(S.publisher)+' under the '+esc(a.license||S.license)+' licence, which permits use, sharing and reproduction in any medium, provided the original work is properly cited.</div></div>';
- var kw=(a.keywords||[]).length?a.keywords.map(esc).join('; '):'<span class="ps-ph">keywords</span>';
+ var kw=(a.keywords||[]).filter(Boolean).map(esc).join('; ');
  var T=pubTpl(a),subt=a.design?'<div class="subt">'+esc(a.design)+'</div>':'';
  var metaBox='<div class="meta"><div>'+pubQr(link,22)+'<div class="qrnote">Scan to read online</div></div><div class="dates">'+dates+'</div></div>';
  var citeBox='<div class="box"><h4>How to cite</h4>'+cite+'</div>';
  var oaBox='<div class="oa"><b>Open access.</b> &copy; '+esc(a.year)+' The authors. Published by '+esc(S.publisher)+' under the '+esc(a.license||S.license)+' licence, which permits use, sharing and reproduction in any medium, provided the original work is properly cited.</div>';
  var affHtml='<div class="affs">'+affs.map(function(f,i){return '<sup>'+(i+1)+'</sup>'+esc(f);}).join('<br>')+'</div>';
  var affGrid='<div class="affs">'+affs.map(function(f,i){return '<sup>'+(i+1)+'</sup><span>'+esc(f)+'</span>';}).join('')+'</div>';
- var absBody=a.abstract?fmt(a.abstract,a,{}):'<p class="ps-ph">Structured abstract: Background, Methods, Results, Conclusions.</p>';
- var kwHtml='<div class="kv"><b>Keywords:</b> '+kw+'</div><div class="kv"><b>Subject area:</b> '+pubPh(a.branch,S.scope||'subject area')+'</div>';
- var right='<div class="abs"><h2>Abstract</h2>'+(a.abstract?fmt(a.abstract,a,{}):'<p class="ps-ph">Structured abstract: Background, Methods, Results, Conclusions.</p>')
-  +'<div class="kv"><b>Keywords:</b> '+kw+'</div><div class="kv"><b>Subject area:</b> '+pubPh(a.branch,S.scope||'subject area')+'</div>'
+ var absBody=a.abstract?fmt(a.abstract,a,{}):'';
+ var kwHtml=(kw?'<div class="kv"><b>Keywords:</b> '+kw+'</div>':'')+(a.branch?'<div class="kv"><b>Subject area:</b> '+esc(a.branch)+'</div>':'');
+ var right='<div class="abs">'+(a.abstract?'<h2>Abstract</h2>'+fmt(a.abstract,a,{}):'')
+  +kwHtml
   +(a.highlights?hlHtml(a).replace('<h3>Key points</h3>','<h3>Editor&rsquo;s perspective / Highlights</h3>'):'')+'</div>';
  return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>'+esc(a.title)+' | '+esc(S.short)+'</title><meta name="author" content="'+esc(au.map(function(x){return x.name;}).join('; '))+'"><meta name="subject" content="'+esc(S.name)+'"><style>'+css+'</style></head><body class="pubstd">'
   +'<div class="toolbar"><button onclick="window.print()">Print / Save as PDF</button><span>Chrome or Edge: Destination = Save as PDF, Paper = A4, Margins = Default, Background graphics = on.</span></div>'
   +(pubIsSample(a)?'<div class="wm">SAMPLE</div>':'')
   +head+(T==='keypoints'
     ?'<div class="fp"><div class="left"><h1 class="title">'+esc(a.title)+'</h1>'+subt+'<div class="authors">'+al+'</div>'+affHtml+corrHtml+pubKeyPoints(a)+metaBox+citeBox+oaBox+'</div>'
-     +'<div class="abs"><h2>Abstract</h2>'+absBody+pubAbsTail(a)+kwHtml+'</div></div>'
+     +'<div class="abs">'+(absBody?'<h2>Abstract</h2>'+absBody:'')+pubAbsTail(a)+kwHtml+'</div></div>'
     :T==='context'
     ?'<div class="tblock"><h1 class="title">'+esc(a.title)+'</h1>'+subt+'<div class="authors">'+al+'</div>'+affGrid+corrHtml+'</div>'
-     +'<div class="fp"><div class="abs"><h2>Abstract</h2>'+absBody+pubAbsTail(a)+kwHtml+'</div>'
-     +'<div class="left">'+pubContext(a)+'<div class="info2"'+(pubSummaryBox(a)?'':' style="margin-top:0;border-top:0;padding-top:0"')+'>'+metaBox.replace('class="meta"','class="meta" style="margin-top:0;border-top:0;padding-top:0"')+citeBox+oaBox+'</div></div></div>'
+     +'<div class="fp"><div class="abs">'+(absBody?'<h2>Abstract</h2>'+absBody:'')+pubAbsTail(a)+kwHtml+'</div>'
+     +'<div class="left">'+pubContext(a)+'<div class="info2"'+(pubContext(a)?'':' style="margin-top:0;border-top:0;padding-top:0"')+'>'+metaBox.replace('class="meta"','class="meta" style="margin-top:0;border-top:0;padding-top:0"')+citeBox+oaBox+'</div></div></div>'
     :'<div class="fp">'+left+right+'</div>')
   +'<hr class="rule">'
   +'<div class="cols">'+bodyHtml(a)+'<div class="decl">'+(T==='standard'?pubDecl(a):pubDeclPlus(a))+'</div></div>'
@@ -255,7 +254,7 @@ function certPage(a,n){
  var ns=x.name.length>34?22:x.name.length>24?26:30;
  var pubd=pubDate(a.published),no=certNo(a,n),vurl=certVerifyUrl(a,n);
  var where='published in <b>'+esc(S.name)+'</b> ('+esc(S.short)+'), Volume '+esc(a.vol)+', Issue '+esc(a.issue)+(a.period?', '+esc(a.period):', '+esc(a.year))+(pubPages(a)?', '+esc(pubPages(a)):'')
-  +', DOI: '+(a.doi?'<a href="https://doi.org/'+esc(a.doi)+'">'+esc(a.doi)+'</a>':'<span class="ps-ph">to be assigned</span>')+'.';
+  +(a.doi?', DOI: <a href="https://doi.org/'+esc(a.doi)+'">'+esc(a.doi)+'</a>':'')+'.';
  var issn=[];if(S.issnO)issn.push('E-ISSN '+S.issnO);if(S.issnP)issn.push('P-ISSN '+S.issnP);
  return '<section class="cert">'
   +'<div class="b1"></div><div class="b2"></div><i class="cn tl"></i><i class="cn tr"></i><i class="cn bl"></i><i class="cn br"></i>'
