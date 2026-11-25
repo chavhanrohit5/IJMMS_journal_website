@@ -42,7 +42,7 @@ const KINDS = [
   [/test email/i, '✅', 'Test e-mail', C.teal],
   [/reset your password/i, '🔑', 'Reset your password', C.navy],
 ];
-const HEAD_ICON = [[/NEW MANUSCRIPT|REVISED MANUSCRIPT/, '📥'], [/COPYRIGHT|HOW TO SIGN/, '✍️'], [/APC|PAY|CHARGE/, '💳'], [/LOGIN/, '🔐'], [/JOURNEY|PROGRESS/, '🧭'], [/NEXT STEP/, '➡️'], [/EDITOR/, '📝'], [/REVIEWER COMMENT/, '💬'], [/RESUBMIT|HOW TO/, '🔁'], [/ACCEPT/, '🎉'], [/SUBMISSION|DETAILS/, '📄'], [/APC|CHARGE|PAYMENT/, '💳']];
+const HEAD_ICON = [[/PLAGIARISM/, '🛡️'], [/NEW MANUSCRIPT|REVISED MANUSCRIPT/, '📥'], [/COPYRIGHT|HOW TO SIGN/, '✍️'], [/APC|PAY|CHARGE/, '💳'], [/LOGIN/, '🔐'], [/JOURNEY|PROGRESS/, '🧭'], [/NEXT STEP/, '➡️'], [/EDITOR/, '📝'], [/REVIEWER COMMENT/, '💬'], [/RESUBMIT|HOW TO/, '🔁'], [/ACCEPT/, '🎉'], [/SUBMISSION|DETAILS/, '📄'], [/APC|CHARGE|PAYMENT/, '💳']];
 
 function inline(t) { // escape, then bold / links / reference numbers / quoted titles
   let h = esc(t);
@@ -56,7 +56,7 @@ function inline(t) { // escape, then bold / links / reference numbers / quoted t
 const P = (h) => `<p style="margin:0 0 14px;${FONT};font-size:15px;line-height:1.6;color:${C.ink}">${h}</p>`;
 function heading(t) {
   const ic = (HEAD_ICON.find(([re]) => re.test(t)) || [0, '📌'])[1];
-  const label = (t.charAt(0) + t.slice(1).toLowerCase()).replace(/\bapc\b/gi, 'APC').replace(/\bdoi\b/gi, 'DOI');
+  const label = (t.charAt(0) + t.slice(1).toLowerCase()).replace(/\bapc\b/gi, 'APC').replace(/\bdoi\b/gi, 'DOI').replace(/\bai\b/gi, 'AI');
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0 10px"><tr><td style="${FONT};font-size:16px;font-weight:bold;color:${C.navy};padding:0 0 6px;border-bottom:2px solid ${C.gold}">${ic}&nbsp; ${esc(label)}</td></tr></table>`;
 }
 function kvTable(rows, box) {

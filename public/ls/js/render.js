@@ -10,6 +10,7 @@
  else if(D.kind==='revack')h=revLetterHTML(D.revapp,'ack');
  else if(D.kind==='revappoint')h=revLetterHTML(D.revapp,'appoint');
  else if(D.kind==='cf')h=cfHTML(cfData(D.sub));
+ else if(D.kind==='plag')h=plagHTML(D.sub);
  else if(D.kind==='cert')h=certHTML(D.article,D.certN);
  h=h.replace(/<script>window\.onload[\s\S]*?<\/script>/g,'');
  /* replace the whole site shell (after parsing ends), so no site stylesheet leaks into the PDF */

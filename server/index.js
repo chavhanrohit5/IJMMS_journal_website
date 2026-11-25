@@ -166,7 +166,7 @@ async function warmPdf(id) {
   warming.add(id);
   try { await articlePdfFile(id); } finally { warming.delete(id); }
 }
-const KIND_FILE = { ack: 'Acknowledgement-of-receipt', accept: 'Letter-of-acceptance', revack: 'Reviewer-application-acknowledgement', revappoint: 'Reviewer-appointment-letter', cf: 'Copyright-form' };
+const KIND_FILE = { ack: 'Acknowledgement-of-receipt', accept: 'Letter-of-acceptance', revack: 'Reviewer-application-acknowledgement', revappoint: 'Reviewer-appointment-letter', cf: 'Copyright-form', plag: 'Plagiarism-and-AI-check-certificate' };
 async function letterPdf(kind, id) {
   const f = path.join(os_tmp(), `jl-${U.uid()}.pdf`);
   await renderPdf(localUrl(kind, id), f);
@@ -188,10 +188,22 @@ async function attachmentsFor(m) {
     return out;
   }
   if (!m.att || !m.subId) return [];
-  if (!findChrome()) return [];
-  const kind = { ack: 'ack', accept: 'accept', revack: 'revack', revappoint: 'revappoint', cf: 'cf' }[m.att];
-  if (!kind) return [];
-  try { return [await letterPdf(kind, m.subId)]; } catch (e) { console.warn('[mail] attachment failed:', e.message); return []; }
+  const out = [];
+  for (const part of String(m.att).split('+')) { // e.g. 'accept+plag' = acceptance letter + plagiarism certificate
+    const kind = { ack: 'ack', accept: 'accept', revack: 'revack', revappoint: 'revappoint', cf: 'cf', plag: 'plag' }[part];
+    if (!kind) continue;
+    if (findChrome()) { try { out.push(await letterPdf(kind, m.subId)); } catch (e) { console.warn('[mail] attachment failed:', e.message); } }
+    if (kind === 'plag') { // the checker's own report, if the editor chose to send it
+      try {
+        const s = (await db.q('SELECT data FROM subs WHERE id=$1', [m.subId])).rows[0];
+        if (s && s.data.plag && s.data.plag.report && s.data.plag.sendReport !== false) {
+          const f = (await db.q('SELECT * FROM files WHERE key=$1', ['sub:' + m.subId + '__plagrep1'])).rows[0];
+          if (f && fs.existsSync(f.path)) out.push({ filename: f.name, content: fs.readFileSync(f.path), contentType: f.mime || 'application/octet-stream' });
+        }
+      } catch (e) { console.warn('[mail] report attachment failed:', e.message); }
+    }
+  }
+  return out;
 }
 async function deliver(id) {
   const r = await db.q('SELECT data FROM outbox WHERE id=$1', [id]);
@@ -688,7 +700,7 @@ app.post('/api/revapps/:id/approve', auth.requireAdmin, wrap(async (req, res) =>
 }));
 
 /* ---- outbox / email ---- */
-const ATTS = ['ack', 'accept', 'revack', 'revappoint', 'cf', ''];
+const ATTS = ['ack', 'accept', 'revack', 'revappoint', 'cf', 'plag', 'accept+plag', ''];
 app.post('/api/outbox', wrap(async (req, res) => {
   const u = req.user; const m = req.body || {}; const S = await getSettings();
   const to = String(m.to || '').trim().toLowerCase();
@@ -707,6 +719,7 @@ app.post('/api/outbox', wrap(async (req, res) => {
     allowed = ['revack'].includes(m.att) || to === String(S.email).toLowerCase();
   }
   if (!allowed) return bad(res, 'You may not send e-mail to that address.', 403);
+  if (m.att === 'accept' && m.subId) { const ps = (await db.q('SELECT data FROM subs WHERE id=$1', [String(m.subId)])).rows[0]; const pl = ps && ps.data.plag; if (pl && pl.sim !== '' && pl.sim != null && !isNaN(+pl.sim)) m.att = 'accept+plag'; } // plagiarism certificate goes with the acceptance letter
   const rec = { id: m.id, to, toName: String(m.toName || '').slice(0, 200), subject: String(m.subject || '').replace(/[\r\n]+/g, ' ').slice(0, 300), body: String(m.body || '').slice(0, 30000), att: m.att || '', subId: String(m.subId || ''), date: new Date().toISOString(), sent: false, auto: false, status: mailer.configured ? 'sending' : 'queued' };
   await db.q('INSERT INTO outbox(id,data) VALUES ($1,$2) ON CONFLICT (id) DO NOTHING', [rec.id, JSON.stringify(rec)]);
   res.json({ ok: 1, mail: { status: rec.status } });
@@ -781,7 +794,7 @@ app.get('/render/:kind/:id', wrap(async (req, res) => {
     const r = (await db.q('SELECT data FROM articles WHERE id=$1', [aid])).rows[0]; if (!r) return res.status(404).send('Not found');
     D.article = r.data; D.certN = n === 'all' ? null : Number(n) - 1;
   }
-  else if (['ack', 'accept', 'cf'].includes(kind)) {
+  else if (['ack', 'accept', 'cf', 'plag'].includes(kind)) {
     const r = (await db.q('SELECT data FROM subs WHERE id=$1', [id])).rows[0]; if (!r) return res.status(404).send('Not found'); D.sub = r.data;
     const au = (await db.q('SELECT * FROM users WHERE id=$1', [D.sub.authorId])).rows[0]; if (au) D.users = [auth.publicUser(au)];
   } else if (['revack', 'revappoint'].includes(kind)) { const r = (await db.q('SELECT data FROM revapps WHERE id=$1', [id])).rows[0]; if (!r) return res.status(404).send('Not found'); D.revapp = r.data; }
@@ -824,6 +837,18 @@ app.get('/article/:id/certificate/:n', wrap(async (req, res) => {
   try { file = await certPdf(a, n); } catch (e) { return res.status(503).send('PDF generation is unavailable: ' + e.message); }
   res.setHeader('Content-Type', 'application/pdf'); res.setHeader('Content-Disposition', `inline; filename="${file.filename}"`);
   res.send(file.content);
+}));
+app.get('/verify-plag/:id', wrap(async (req, res) => {
+  const id = req.params.id; const S = await getSettings();
+  const r = ID_RE.test(id) ? (await db.q('SELECT data FROM subs WHERE id=$1', [id])).rows[0] : null;
+  const s = r && r.data; const p = s && s.plag; const ok = !!(p && p.sim !== '' && p.sim != null && !isNaN(+p.sim));
+  const e = (x) => String(x == null ? '' : x).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const ai = ok && p.ai !== '' && p.ai != null && !isNaN(+p.ai) ? +p.ai : null;
+  const body = ok
+    ? `<h1 style="color:#0E7C7B">&#10004; Valid certificate</h1><p>Plagiarism &amp; AI Content Check Certificate</p><table cellpadding="6"><tr><td>Reference no.</td><td><b>${e(s.ref)}</b></td></tr><tr><td>Manuscript</td><td>${e(s.title)}</td></tr><tr><td>Similarity index</td><td><b>${e(+p.sim)}%</b></td></tr>${ai !== null ? `<tr><td>AI-generated content</td><td><b>${e(ai)}%</b></td></tr>` : ''}<tr><td>Checked with</td><td>${e(p.tool || S.plagTool || '')}${ai !== null && p.aiTool ? ' / ' + e(p.aiTool) : ''}</td></tr><tr><td>Date of check</td><td>${e(p.date)}</td></tr><tr><td>Journal</td><td>${e(S.name)} (${e(S.short)})</td></tr></table>`
+    : '<h1 style="color:#9b1c1c">Certificate not found</h1><p>This certificate could not be verified. Please contact the editorial office.</p>';
+  res.setHeader('Cache-Control', 'no-store');
+  res.status(ok ? 200 : 404).send(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Certificate verification | ${e(S.short)}</title></head><body style="font-family:Arial,sans-serif;max-width:720px;margin:40px auto;padding:0 16px;color:#1c2530"><p style="color:#5f6b7a">${e(S.name)} &middot; ${e(S.publisher)}</p>${body}<p style="color:#5f6b7a;font-size:13px;margin-top:30px">Questions: ${e(S.email)}</p></body></html>`);
 }));
 app.get('/verify/:id/:n', wrap(async (req, res) => {
   const id = req.params.id; const n = parseInt(req.params.n, 10) - 1;
