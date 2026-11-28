@@ -232,17 +232,18 @@ vSubmit=function(){var u=curUser();if(!u)return hd('Submit manuscript')+pg('<div
 
 ACT.subsubmit=async function(){var g=function(i){return $(i)?$(i).value.trim():'';},u=curUser(),type=g('sf-type'),T=fmtType(type);
  var kw=g('sf-kw').split(/[,;]/).map(function(x){return x.trim();}).filter(Boolean);
- var d=fmtRead(type),chk=fmtCheck(type,d,true),au=authRead();
+ var dr=window.__draftId?findSub(window.__draftId):null,dmain=(dr&&dr.fmt&&dr.fmt.mainName)||'';
+ var d=fmtRead(type),chk=fmtCheck(type,d,!dr),au=authRead();
  if(chk.e.length){toast(chk.e.slice(0,3).join('; '));return;}
  if(chk.w.length&&!confirm(chk.w.join('\n')+'\n\nSubmit anyway? The editor may ask you to shorten it.'))return;
- var id=uid();$('sf-prog').textContent='Uploading files...';
- var up;try{up=await fmtUpload(id,type,[]);}catch(e){$('sf-prog').textContent='';toast('Upload failed: '+e.message);return;}
+ var id=dr?dr.id:uid();$('sf-prog').textContent='Uploading files...';if(typeof draftStop==='function')draftStop();
+ var up;try{up=await fmtUpload(id,type,(dr&&dr.fmt&&dr.fmt.files)||[]);}catch(e){$('sf-prog').textContent='';toast('Upload failed: '+e.message);return;}
  var abstract=fmtComposeAbs(T,d.abs)||(d.conf?'':'');
- var s={id:id,authorId:u.id,authorName:u.name,authorEmail:u.email,title:g('sf-title')||'Untitled manuscript',type:type,branch:g('sf-branch'),authorsRaw:au.raw||u.name,corr:au.corr||(u.name+', '+u.email),keywords:kw,abstract:abstract,note:g('sf-note'),status:'Submitted',date:today(),created:Date.now(),hasFile:!!up.main,fileName:up.main||'',
-  fmt:{v:1,type:type,authors:au.list,abs:d.abs,secs:d.secs,decl:d.decl,x:d.x,conf:d.conf,pres:d.pres,refs:d.refs,files:up.files,mainName:up.main||''},history:[{d:today(),t:'Submitted by author'}]};
+ var s={id:id,authorId:u.id,authorName:u.name,authorEmail:u.email,title:g('sf-title')||'Untitled manuscript',type:type,branch:g('sf-branch'),authorsRaw:au.raw||u.name,corr:au.corr||(u.name+', '+u.email),keywords:kw,abstract:abstract,note:g('sf-note'),status:'Submitted',date:today(),created:dr&&dr.created||Date.now(),hasFile:!!(up.main||dmain),fileName:up.main||dmain,
+  fmt:{v:1,type:type,authors:au.list,abs:d.abs,secs:d.secs,decl:d.decl,x:d.x,conf:d.conf,pres:d.pres,refs:d.refs,files:up.files,mainName:up.main||dmain},history:[{d:today(),t:'Submitted by author'}]};
  try{await saveSub(s);}catch(e){$('sf-prog').textContent='';toast('Submission failed: '+e.message);return;}
  ensureRef(s);s.history.push({d:today(),t:'Acknowledgement issued ('+s.ref+')'});await saveSub(s);if(typeof mReceived==='function')mReceived(s);
- toast('Received - reference '+s.ref+'. Confirmation email prepared.');location.hash='#/sub/'+s.id;};
+ if(typeof draftDone==='function')draftDone(s.id);toast('Received - reference '+s.ref+'. Confirmation email prepared.');location.hash='#/sub/'+s.id;};
 
 /* --------------------------- submission view (author / editor) --------------------------- */
 function fmtView(s){var f=s.fmt;if(!f){if(!isAdmin())return '';return '<div class="card fmtview" id="fmtview"><h3>Manuscript content</h3><p class="note" style="font-size:13px">This manuscript was submitted with the earlier form (abstract and file only). You can add the sections, declarations and files in the new structured format.</p><p><button class="btn gold" data-act="fmtedit" data-id="'+s.id+'">Add structured content</button></p></div>';}var T=fmtType(s.type),ed=isAdmin(),u=curUser(),canEdit=ed||(u&&u.id===s.authorId&&(s.status==='Submitted'||s.status==='Revision requested'));

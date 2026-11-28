@@ -244,7 +244,7 @@ app.get('/api/bootstrap', wrap(async (req, res) => {
   out.articles = ar.rows.filter((r) => staff || U.artPublic(S, r.data)).map((r) => lightArticle(r.data));
   out.subs = []; out.users = []; out.outbox = []; out.revapps = [];
   if (staff) {
-    out.subs = (await db.q('SELECT data FROM subs ORDER BY updated DESC')).rows.map((r) => r.data);
+    out.subs = (await db.q("SELECT data FROM subs WHERE coalesce(data->>'status','')<>'Draft' ORDER BY updated DESC")).rows.map((r) => r.data);
     out.users = (await db.q('SELECT * FROM users ORDER BY created')).rows.map(auth.publicUser);
     out.outbox = (await db.q('SELECT data FROM outbox ORDER BY created DESC LIMIT 200')).rows.map((r) => r.data).reverse();
     out.revapps = (await db.q('SELECT data FROM revapps ORDER BY created')).rows.map((r) => r.data);
@@ -446,7 +446,7 @@ app.put('/api/subs/:id', auth.requireAuth, wrap(async (req, res) => {
   if (!ex) {
     s = { ...inc };
     if (!auth.isStaff(u)) {
-      Object.assign(s, { authorId: u.id, authorName: u.name, authorEmail: u.email, status: 'Submitted', reviewerId: '' });
+      Object.assign(s, { authorId: u.id, authorName: u.name, authorEmail: u.email, status: inc.status === 'Draft' ? 'Draft' : 'Submitted', reviewerId: '' });
       delete s.review; delete s.decision; delete s.reviewerName; delete s.articleId;
     }
   } else {
@@ -455,6 +455,11 @@ app.put('/api/subs/:id', auth.requireAuth, wrap(async (req, res) => {
     else if (cur.authorId === u.id) {
       s = { ...cur }; AUTHOR_KEYS.forEach((k) => { if (inc[k] !== undefined) s[k] = inc[k]; });
       if (inc.status === 'Submitted') s.status = 'Submitted';
+      if (cur.status === 'Draft') { // a saved draft: the author may still change everything and keep it as a draft
+        ['note', 'date', 'created', 'draft'].forEach((k) => { if (inc[k] !== undefined) s[k] = inc[k]; });
+        s.status = inc.status === 'Submitted' ? 'Submitted' : 'Draft';
+        if (Array.isArray(inc.history)) s.history = inc.history;
+      }
       if (inc.cr && typeof inc.cr === 'object' && JSON.stringify(inc.cr) !== JSON.stringify(cur.cr || null)) { // copyright form: server stamps time and IP; only staff can verify
         const c = inc.cr; const sig = String(c.sig || '');
         if (c.method === 'digital' && !/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(sig)) return bad(res, 'Invalid signature image.');
@@ -477,12 +482,13 @@ app.put('/api/subs/:id', auth.requireAuth, wrap(async (req, res) => {
     s.authorId = cur.authorId; if (!auth.isStaff(u)) s.reviewerId = cur.reviewerId || '';
   }
   const clash = s.ref ? (await db.q('SELECT id FROM subs WHERE ref=$1 AND id<>$2', [s.ref, id])).rows[0] : null;
-  if (!s.ref || clash) s.ref = await nextRef(S);
+  if (s.status === 'Draft') s.ref = '';
+  else if (!s.ref || clash) s.ref = await nextRef(S);
   await db.q(`INSERT INTO subs(id,author_id,reviewer_id,ref,data,updated) VALUES ($1,$2,$3,$4,$5,now())
     ON CONFLICT (id) DO UPDATE SET author_id=$2,reviewer_id=$3,ref=$4,data=$5,updated=now()`, [id, s.authorId || '', s.reviewerId || '', s.ref, JSON.stringify(s)]);
   res.json({ ok: 1, sub: s });
-  if (!auth.isStaff(u) && (!ex || (ex.data.status !== 'Submitted' && s.status === 'Submitted'))) {
-    notifyOffice(S, s, ex ? 'revised' : 'new').catch((e) => console.warn('[mail] office notice:', e.message));
+  if (!auth.isStaff(u) && s.status === 'Submitted' && (!ex || ex.data.status !== 'Submitted')) {
+    notifyOffice(S, s, ex && ex.data.status !== 'Draft' ? 'revised' : 'new').catch((e) => console.warn('[mail] office notice:', e.message));
   }
 }));
 /* ---------------- Razorpay Payment Links (keys only in the server .env) ---------------- */
@@ -568,6 +574,16 @@ async function notifyOffice(S, s, kind) {
   await db.q('INSERT INTO outbox(id,data) VALUES ($1,$2) ON CONFLICT (id) DO NOTHING', [rec.id, JSON.stringify(rec)]);
   if (mailer.configured) await deliver(rec.id);
 }
+app.delete('/api/drafts/:id', auth.requireAuth, wrap(async (req, res) => {
+  const r = (await db.q('SELECT data FROM subs WHERE id=$1', [req.params.id])).rows[0];
+  if (!r) return res.json({ ok: 1 });
+  if (r.data.status !== 'Draft' || (r.data.authorId !== req.user.id && !auth.isStaff(req.user))) return bad(res, 'Only your own unsent drafts can be deleted.', 403);
+  await db.q('DELETE FROM subs WHERE id=$1', [req.params.id]);
+  await removeFile('sub:' + req.params.id);
+  const extra = await db.q("SELECT key FROM files WHERE key LIKE $1", ['sub:' + req.params.id + '\\_\\_%']);
+  for (const x of extra.rows) await removeFile(x.key);
+  res.json({ ok: 1 });
+}));
 app.delete('/api/subs/:id', auth.requireStaff, wrap(async (req, res) => {
   await db.q('DELETE FROM subs WHERE id=$1', [req.params.id]);
   await removeFile('sub:' + req.params.id);
